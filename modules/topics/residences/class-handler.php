@@ -1,207 +1,211 @@
 <?php
 /**
  * Residences Handler
- * 
- * Processes Form 38 submissions:
- * - Links entries to parent Form 75
- * - Injects date calculation data for dashboard
- * - Handles duration and gap calculations
+ *
+ * Handles all residence-related PHP functionality including:
+ * - Parent entry data injection for JavaScript
+ * - Country limitation for Form 38 (US only)
+ * - localStorage clearing on dashboard load
+ * - AJAX handlers
+ *
+ * @package NME\Topics\Residences
  */
 
 namespace NME\Topics\Residences;
 
-use NME\Core\FieldRegistry\FieldRegistry;
 use NME\Core\UserContext\UserContext;
 use NME\Core\MasterForm\MasterForm;
-use NME\Features\DateCalculations\DateCalculator;
 
-defined('ABSPATH') || exit;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class Handler {
 
-    /** @var int Form ID */
+    /**
+     * Form ID for Residence entries
+     */
     const FORM_ID = 38;
 
-    /** @var array Page IDs where this handler runs */
-    const PAGE_IDS = [
-        FieldRegistry::PAGE_RES_ADD,
-        FieldRegistry::PAGE_RES_DASHBOARD,
-        FieldRegistry::PAGE_RES_LIST,
-        FieldRegistry::PAGE_RES_EDIT,
-    ];
+    /**
+     * Page IDs
+     */
+    const PAGE_ADD = 504;
+    const PAGE_DASHBOARD = 705;
+    const PAGE_EDIT = 514;
 
     /**
-     * Initialize hooks
+     * Master Form field IDs
+     */
+    const MASTER_FIELD_CONTROLLING_FACTOR = 894;
+    const MASTER_FIELD_APPLICATION_DATE = 895;
+
+    /**
+     * Initialize handler
      */
     public static function init(): void {
-        // Inject parent entry data on relevant pages
-        add_action('wp_enqueue_scripts', [__CLASS__, 'maybe_enqueue_assets']);
-
-        // Prepopulate fields
-        add_filter('gform_pre_render_' . self::FORM_ID, [__CLASS__, 'prepopulate_fields']);
-
-        // Country restriction
-        add_filter('gform_pre_render_' . self::FORM_ID, [__CLASS__, 'limit_countries']);
-        add_filter('gform_pre_validation_' . self::FORM_ID, [__CLASS__, 'limit_countries']);
-        add_filter('gform_pre_submission_filter_' . self::FORM_ID, [__CLASS__, 'limit_countries']);
-        add_filter('gform_admin_pre_render_' . self::FORM_ID, [__CLASS__, 'limit_countries']);
+        // Inject parent entry data into JavaScript
+        add_action( 'wp_head', [ __CLASS__, 'inject_parent_entry_data' ], 1 );
+        
+        // Clear localStorage on dashboard load
+        add_action( 'wp_head', [ __CLASS__, 'clear_residence_variables' ] );
+        
+        // Country limitation for Form 38
+        add_filter( 'gform_pre_render_' . self::FORM_ID, [ __CLASS__, 'limit_countries' ] );
+        add_filter( 'gform_pre_validation_' . self::FORM_ID, [ __CLASS__, 'limit_countries' ] );
+        add_filter( 'gform_pre_submission_filter_' . self::FORM_ID, [ __CLASS__, 'limit_countries' ] );
+        add_filter( 'gform_admin_pre_render_' . self::FORM_ID, [ __CLASS__, 'limit_countries' ] );
+        
+        // AJAX handler for checking residence entries
+        add_action( 'wp_ajax_check_residence_entries_exist', [ __CLASS__, 'ajax_check_entries_exist' ] );
+        add_action( 'wp_ajax_nopriv_check_residence_entries_exist', [ __CLASS__, 'ajax_check_entries_exist' ] );
     }
 
     /**
-     * Enqueue assets on relevant pages
+     * Check if we're on a residence page
+     *
+     * @return bool
      */
-    public static function maybe_enqueue_assets(): void {
-        if (!is_page(self::PAGE_IDS)) {
-            return;
-        }
-
-        $parent_entry_id = UserContext::get_parent_entry_id();
-
-        if (!$parent_entry_id) {
-            return;
-        }
-
-        // Add inline script with calculation data
-        add_action('wp_footer', function() use ($parent_entry_id) {
-            self::output_calculation_data($parent_entry_id);
-        });
+    private static function is_residence_page(): bool {
+        return is_page( self::PAGE_ADD ) || is_page( self::PAGE_DASHBOARD ) || is_page( self::PAGE_EDIT );
     }
 
     /**
-     * Output calculation data for JavaScript
+     * Inject parent entry data into JavaScript
+     * Includes Controlling Factor (field 894) and Application Date (field 895)
      */
-    private static function output_calculation_data(int $parent_entry_id): void {
-        $controlling_factor = MasterForm::get_controlling_factor($parent_entry_id);
-        $application_date = MasterForm::get_application_date($parent_entry_id);
-
-        if (!$controlling_factor || !$application_date) {
+    public static function inject_parent_entry_data(): void {
+        if ( ! self::is_residence_page() ) {
             return;
         }
 
-        $js_data = DateCalculator::get_js_data($parent_entry_id);
+        global $wpdb;
+
+        // Get parent_entry_id from multiple sources
+        $parent_entry_id = isset( $_GET['parent_entry_id'] ) ? intval( $_GET['parent_entry_id'] ) : null;
+
+        if ( ! $parent_entry_id ) {
+            $parent_entry_id = UserContext::get_parent_entry_id();
+        }
+
+        // Fallback: try to get from current entry's meta
+        if ( ! $parent_entry_id && isset( $_GET['entry_id'] ) ) {
+            $current_entry_id = intval( $_GET['entry_id'] );
+            $parent_entry_id = $wpdb->get_var( $wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->prefix}gf_entry_meta 
+                 WHERE entry_id = %d AND meta_key = 'parent_entry_id'",
+                $current_entry_id
+            ) );
+        }
+
+        $controlling_factor = null;
+        $application_date = null;
+
+        if ( $parent_entry_id ) {
+            // Get Controlling Factor (field 894)
+            $controlling_factor = $wpdb->get_var( $wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->prefix}gf_entry_meta 
+                 WHERE entry_id = %d AND meta_key = %s",
+                intval( $parent_entry_id ),
+                self::MASTER_FIELD_CONTROLLING_FACTOR
+            ) );
+
+            // Get Application Date (field 895)
+            $application_date = $wpdb->get_var( $wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->prefix}gf_entry_meta 
+                 WHERE entry_id = %d AND meta_key = %s",
+                intval( $parent_entry_id ),
+                self::MASTER_FIELD_APPLICATION_DATE
+            ) );
+        }
+
         ?>
         <script>
-            window.nmeResidenceData = <?php echo json_encode($js_data); ?>;
-            window.parentEntryResRequired = <?php echo json_encode($controlling_factor); ?>;
-            window.parentEntryApplicationDate = <?php echo json_encode($application_date); ?>;
+            window.parentEntryResRequired = <?php echo json_encode( $controlling_factor ); ?>;
+            window.parentEntryApplicationDate = <?php echo json_encode( $application_date ); ?>;
+            console.log('NME Residence: Parent entry ID:', <?php echo json_encode( $parent_entry_id ); ?>, 
+                        'Controlling Factor:', <?php echo json_encode( $controlling_factor ); ?>, 
+                        'Application Date:', <?php echo json_encode( $application_date ); ?>);
         </script>
         <?php
     }
 
     /**
-     * Prepopulate form fields
+     * Clear residence localStorage variables on dashboard load
+     * Only clears on dashboard page (705), NOT on edit or add pages
      */
-    public static function prepopulate_fields(array $form): array {
-        $anumber = UserContext::get_anumber();
-        $parent_entry_id = UserContext::get_parent_entry_id();
-
-        foreach ($form['fields'] as &$field) {
-            // Prepopulate A-Number
-            if (isset($field->inputName) && $field->inputName === 'anumber') {
-                $field->defaultValue = $anumber;
-            }
-
-            // Prepopulate parent_entry_id
-            if ((int) $field->id === FieldRegistry::RES_FIELD_PARENT_ENTRY_ID) {
-                $field->defaultValue = $parent_entry_id;
-            }
+    public static function clear_residence_variables(): void {
+        // Only clear on dashboard page, not when in GravityView edit mode
+        if ( ! is_page( self::PAGE_DASHBOARD ) ) {
+            return;
         }
+
+        // Don't clear if in GravityView edit mode
+        if ( isset( $_GET['gvid'] ) && intval( $_GET['gvid'] ) === 513 ) {
+            return;
+        }
+
+        ?>
+        <script>
+            // Only reset localStorage on dashboard load to prepare for new operations
+            // DO NOT clear on edit pages (514) or add pages (504) as they need the stored values
+            localStorage.removeItem('previousEntryFrom');
+            localStorage.removeItem('subsequentEntryTo');
+            localStorage.removeItem('res-count');
+            console.log('NME Residence: Cleared localStorage variables on dashboard load');
+        </script>
+        <?php
+    }
+
+    /**
+     * Limit countries to United States only for Form 38
+     *
+     * @param array $form The form array
+     * @return array Modified form array
+     */
+    public static function limit_countries( array $form ): array {
+        // Override the default countries list with just the United States
+        add_filter( 'gform_countries', function( $countries ) {
+            return [ 'United States' ];
+        } );
 
         return $form;
     }
 
     /**
-     * Limit country dropdown to United States only
+     * AJAX handler to check if residence entries exist for a user
      */
-    public static function limit_countries(array $form): array {
-        foreach ($form['fields'] as &$field) {
-            if ($field->type === 'address') {
-                // Force US only
-                $field->defaultCountry = 'United States';
-                $field->addressType = 'us';
-            }
+    public static function ajax_check_entries_exist(): void {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'nme-res-ajax-nonce' ) ) {
+            wp_send_json_error( [ 'message' => 'Security check failed' ] );
+            return;
         }
 
-        return $form;
-    }
+        $anumber = sanitize_text_field( $_POST['anumber'] ?? '' );
 
-    /**
-     * Get entries for a parent
-     */
-    public static function get_entries_for_parent(int $parent_entry_id): array {
+        if ( empty( $anumber ) ) {
+            wp_send_json_error( [ 'message' => 'A-Number is required' ] );
+            return;
+        }
+
         global $wpdb;
 
-        $entry_ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT e.id FROM {$wpdb->prefix}gf_entry e
+        // Check if any residence entries exist for this A-Number
+        $count = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}gf_entry e
              INNER JOIN {$wpdb->prefix}gf_entry_meta em ON e.id = em.entry_id
              WHERE e.form_id = %d 
              AND e.status = 'active'
-             AND em.meta_key = %s 
-             AND em.meta_value = %s
-             ORDER BY e.id ASC",
+             AND em.meta_key = '4'
+             AND em.meta_value = %s",
             self::FORM_ID,
-            (string) FieldRegistry::RES_FIELD_PARENT_ENTRY_ID,
-            (string) $parent_entry_id
-        ));
+            $anumber
+        ) );
 
-        if (empty($entry_ids) || !class_exists('GFAPI')) {
-            return [];
-        }
-
-        $entries = [];
-        foreach ($entry_ids as $entry_id) {
-            $entry = \GFAPI::get_entry($entry_id);
-            if (!is_wp_error($entry)) {
-                $entries[] = $entry;
-            }
-        }
-
-        return $entries;
-    }
-
-    /**
-     * Calculate total days for a parent's residences
-     */
-    public static function get_total_days(int $parent_entry_id): int {
-        $entries = self::get_entries_for_parent($parent_entry_id);
-        $total = 0;
-
-        foreach ($entries as $entry) {
-            $duration = (int) rgar($entry, FieldRegistry::RES_FIELD_DURATION);
-            $total += $duration;
-        }
-
-        return $total;
-    }
-
-    /**
-     * Check for gaps in residence history
-     */
-    public static function find_gaps(int $parent_entry_id): array {
-        $entries = self::get_entries_for_parent($parent_entry_id);
-        $gaps = [];
-
-        // Sort by from date
-        usort($entries, function($a, $b) {
-            return strtotime(rgar($a, FieldRegistry::RES_FIELD_FROM_DATE)) 
-                 - strtotime(rgar($b, FieldRegistry::RES_FIELD_FROM_DATE));
-        });
-
-        for ($i = 0; $i < count($entries) - 1; $i++) {
-            $current_to = rgar($entries[$i], FieldRegistry::RES_FIELD_TO_DATE);
-            $next_from = rgar($entries[$i + 1], FieldRegistry::RES_FIELD_FROM_DATE);
-
-            $gap_days = DateCalculator::calculate_residence_gap($current_to, $next_from);
-
-            if ($gap_days > 0) {
-                $gaps[] = [
-                    'after_entry' => $entries[$i]['id'],
-                    'before_entry' => $entries[$i + 1]['id'],
-                    'days' => $gap_days,
-                ];
-            }
-        }
-
-        return $gaps;
+        wp_send_json_success( [
+            'has_entries' => intval( $count ) > 0,
+            'count'       => intval( $count ),
+        ] );
     }
 }

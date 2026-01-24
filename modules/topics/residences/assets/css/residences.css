@@ -1,0 +1,227 @@
+/**
+ * NME Residences Module Styles
+ *
+ * Styles for residence dashboard, validation, and UI elements
+ *
+ * @package NME\Topics\Residences
+ */
+
+/* ============================================================
+   Dashboard Styles
+   ============================================================ */
+
+.res-duration-display {
+    font-weight: bold;
+    color: #0073aa;
+    font-size: 16px;
+}
+
+#res-duration {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0073aa;
+}
+
+#dateResReq {
+    font-style: italic;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+#res-result {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #0073aa;
+}
+
+#res-result p {
+    margin: 0;
+}
+
+/* ============================================================
+   Validation Messages
+   ============================================================ */
+
+.res-validation-message {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+    border-left: 4px solid #0073aa;
+}
+
+.res-validation-message.success {
+    background-color: #d4edda;
+    border-left-color: #28a745;
+    color: #155724;
+}
+
+.res-validation-message.warning {
+    background-color: #fff3cd;
+    border-left-color: #ffc107;
+    color: #856404;
+}
+
+.res-validation-message.error {
+    background-color: #f8d7da;
+    border-left-color: #dc3545;
+    color: #721c24;
+}
+
+/* ============================================================
+   Date Input Validation Highlights
+   ============================================================ */
+
+.date-validation-error {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5 !important;
+}
+
+.date-validation-warning {
+    border: 2px solid #ffc107 !important;
+    background-color: #fffbf0 !important;
+}
+
+/* ============================================================
+   Custom Confirm Dialog
+   ============================================================ */
+
+.custom-confirm-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f44336;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    max-width: 80%;
+    text-align: center;
+}
+
+.custom-confirm-box button {
+    padding: 8px 16px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: #fff;
+    color: #f44336;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.custom-confirm-box button:hover {
+    background-color: #f0f0f0;
+}
+
+/* ============================================================
+   Spinner Overlay
+   ============================================================ */
+
+#spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10002;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #ccc;
+    border-top-color: #f44336;
+    border-radius: 50%;
+    animation: spinner-rotation 0.6s linear infinite;
+}
+
+@keyframes spinner-rotation {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================
+   Add Button Styling
+   ============================================================ */
+
+#res-add {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #0073aa;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+#res-add:hover {
+    background-color: #005a87;
+    color: #fff;
+    text-decoration: none;
+}
+
+/* ============================================================
+   Table Row Styling
+   ============================================================ */
+
+.res-index {
+    font-weight: bold;
+    color: #333;
+}
+
+.res-from-date,
+.res-to-date {
+    white-space: nowrap;
+}
+
+.res-state {
+    text-transform: uppercase;
+}
+
+/* ============================================================
+   Responsive Design
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .custom-confirm-box {
+        width: 90%;
+        padding: 15px;
+    }
+
+    #res-add {
+        display: block;
+        text-align: center;
+    }
+}
+
+/* ============================================================
+   Accessibility
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation: none;
+    }
+
+    * {
+        transition: none !important;
+    }
+}
+
+/* Focus states */
+#res-add:focus,
+.custom-confirm-box button:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
