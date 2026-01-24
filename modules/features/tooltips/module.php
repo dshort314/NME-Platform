@@ -11,11 +11,14 @@ defined('ABSPATH') || exit;
 
 return [
     'id'          => 'tooltips',
-    'name'        => 'Tooltips',
+    'name'        => 'Form Tooltips',
     'description' => 'Field-level help text tooltips for forms',
     'requires'    => ['field-registry'],
     'boot'        => function() {
         require_once __DIR__ . '/class-tooltips.php';
+        require_once __DIR__ . '/class-admin.php';
+        
         Tooltips::init();
+        Admin::init();
     },
 ];

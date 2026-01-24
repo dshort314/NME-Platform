@@ -17,6 +17,9 @@ return [
     'requires'    => ['field-registry'],
     'boot'        => function() {
         require_once __DIR__ . '/class-counsel.php';
+        require_once __DIR__ . '/class-admin.php';
+        
         Counsel::init();
+        Admin::init();
     },
 ];
