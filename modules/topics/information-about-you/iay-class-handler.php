@@ -50,17 +50,13 @@ class Handler {
             [__CLASS__, 'create_master_entry_pre_submission']
         );
 
-        // DISABLED: PHP backup calculations removed - JavaScript is authoritative
-        // The date calculations and eligibility logic MUST run client-side via JavaScript.
-        // PHP cannot accurately replicate this logic as it depends on user interactions
-        // and Today's date which is set dynamically.
-        // 
-        // add_action(
-        //     'gform_after_submission_' . self::FORM_ID,
-        //     [__CLASS__, 'update_form_70_with_calculated_values'],
-        //     5,
-        //     2
-        // );
+        // Hook AFTER submission to update Form 70 with the calculated values (runs FIRST with priority 5)
+        add_action(
+            'gform_after_submission_' . self::FORM_ID,
+            [__CLASS__, 'update_form_70_with_calculated_values'],
+            5,
+            2
+        );
 
         // Hook into confirmation to modify redirect URL
         add_filter(

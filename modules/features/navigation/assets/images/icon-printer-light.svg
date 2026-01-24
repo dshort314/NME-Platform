@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Light version (navy outline on white) -->
+  <g id="light-version">
+    <!-- Paper coming out of the printer -->
+    <rect x="18" y="10" width="28" height="18" rx="2"
+          fill="none" stroke="#2c3e50" stroke-width="3"/>
+
+    <!-- Paper detail lines -->
+    <line x1="22" y1="16" x2="42" y2="16"
+          stroke="#2c3e50" stroke-width="2" stroke-linecap="round"/>
+    <line x1="22" y1="21" x2="38" y2="21"
+          stroke="#2c3e50" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Printer body -->
+    <rect x="14" y="24" width="36" height="24" rx="3"
+          fill="none" stroke="#2c3e50" stroke-width="3"/>
+
+    <!-- Output tray -->
+    <rect x="20" y="44" width="24" height="8" rx="2"
+          fill="none" stroke="#2c3e50" stroke-width="3"/>
+
+    <!-- Status button -->
+    <circle cx="42" cy="32" r="2.5" fill="#2c3e50"/>
+
+    <!-- Feet -->
+    <line x1="20" y1="52" x2="24" y2="52"
+          stroke="#2c3e50" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="40" y1="52" x2="44" y2="52"
+          stroke="#2c3e50" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>

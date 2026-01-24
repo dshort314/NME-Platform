@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Light version (navy outline on white) -->
+  <g id="light-version">
+    <!-- Outer dashboard frame -->
+    <rect x="10" y="12" width="44" height="40" rx="4"
+          fill="none" stroke="#2c3e50" stroke-width="3"/>
+
+    <!-- Top left widget -->
+    <rect x="14" y="16" width="16" height="10" rx="2"
+          fill="none" stroke="#2c3e50" stroke-width="2"/>
+
+    <!-- Top right widget -->
+    <rect x="34" y="16" width="16" height="10" rx="2"
+          fill="none" stroke="#2c3e50" stroke-width="2"/>
+
+    <!-- Bottom left widget -->
+    <rect x="14" y="32" width="16" height="14" rx="2"
+          fill="none" stroke="#2c3e50" stroke-width="2"/>
+
+    <!-- Bottom right widget with a mini chart -->
+    <rect x="34" y="32" width="16" height="14" rx="2"
+          fill="none" stroke="#2c3e50" stroke-width="2"/>
+
+    <!-- Mini chart lines -->
+    <polyline points="36,42 39,38 42,40 45,35"
+              fill="none" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Dark version -->
+  <g id="dark-version">
+    <!-- Adult -->
+    <circle cx="24" cy="18" r="7" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+    <path d="M 12 48 Q 12 30 24 30 Q 36 30 36 48" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Child (smaller) -->
+    <circle cx="44" cy="26" r="5" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+    <path d="M 36 48 Q 36 36 44 36 Q 52 36 52 48" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>

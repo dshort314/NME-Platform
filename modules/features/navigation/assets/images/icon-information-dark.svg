@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Dark version (white on navy) -->
+  <g id="dark-version">
+    <rect x="12" y="8" width="40" height="48" rx="3" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <line x1="20" y1="20" x2="44" y2="20" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="20" y1="28" x2="44" y2="28" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="20" y1="36" x2="44" y2="36" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="20" y1="44" x2="36" y2="44" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>
