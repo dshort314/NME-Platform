@@ -12,6 +12,7 @@ defined('ABSPATH') || exit;
 return [
     'id'          => 'marital-history',
     'name'        => 'Marital History',
+    'type'        => 'topics',
     'description' => 'Form 71 - marital history synced to Master',
     'requires'    => ['field-registry', 'user-context', 'master-form'],
     'boot'        => function() {
