@@ -29,13 +29,14 @@ class Plugin {
         ModuleLoader::init();
 
         // Admin menu
-        add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
+        add_action('admin_menu', [__CLASS__, 'register_admin_menu'], 10);
     }
 
     /**
      * Register admin menu
      */
     public static function register_admin_menu(): void {
+        // Main menu page
         add_menu_page(
             'NME Platform',
             'NME Platform',
@@ -44,6 +45,16 @@ class Plugin {
             [__CLASS__, 'render_admin_page'],
             'dashicons-forms',
             30
+        );
+
+        // Add "Dashboard" as first submenu (points to same page as parent)
+        add_submenu_page(
+            'nme-platform',
+            'NME Platform Dashboard',
+            'Dashboard',
+            'manage_options',
+            'nme-platform',
+            [__CLASS__, 'render_admin_page']
         );
     }
 

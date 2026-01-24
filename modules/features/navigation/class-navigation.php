@@ -61,7 +61,7 @@ class Navigation {
                 'label'        => 'Residences',
                 'form_id'      => FieldRegistry::FORM_RESIDENCES,
                 'form_page_id' => FieldRegistry::PAGE_RES_ADD,
-                'view_page_id' => FieldRegistry::PAGE_RES_DASHBOARD_1,
+                'view_page_id' => FieldRegistry::PAGE_RES_DASHBOARD,
                 'view_id'      => FieldRegistry::VIEW_RESIDENCES,
                 'icon'         => 'icon-home-dark.svg',
                 'order'        => 30,
