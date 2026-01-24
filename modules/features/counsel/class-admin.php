@@ -1,268 +1,357 @@
 <?php
 /**
- * Counsel Admin
- * 
- * Admin settings page for configuring counsel modal messages.
- * Registers under NME Platform menu.
+ * Counsel Admin - NME Platform
+ *
+ * Admin interface for Application Counsel settings.
+ * Ported from NME-Settings, matches original UI exactly.
+ *
+ * @package NME_Platform
  */
 
-namespace NME\Features\Counsel;
+namespace NME_Platform\Modules\Features\Counsel;
 
-defined('ABSPATH') || exit;
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 class Admin {
 
-    /** @var string Admin page slug */
-    const PAGE_SLUG = 'nme-counsel';
-
-    /** @var string Option key */
-    const OPTION_KEY = 'nme_platform_settings';
+    /**
+     * Option key (same as original)
+     */
+    const OPTION_KEY = 'nme_settings_bouncer';
 
     /**
      * Initialize admin hooks
      */
-    public static function init(): void {
-        if (!is_admin()) {
-            return;
-        }
-
+    public static function init() {
         add_action('admin_menu', [__CLASS__, 'add_submenu_page'], 20);
+        add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
     }
 
     /**
      * Add submenu page under NME Platform
      */
-    public static function add_submenu_page(): void {
+    public static function add_submenu_page() {
         add_submenu_page(
             'nme-platform',
-            'Application Counsel',
-            'Application Counsel',
+            __('Application Counsel', 'nme-platform'),
+            __('Application Counsel', 'nme-platform'),
             'manage_options',
-            self::PAGE_SLUG,
+            'nme-counsel',
             [__CLASS__, 'render_page']
         );
     }
 
     /**
-     * Get all settings
+     * Get settings for the form
      */
-    public static function get_settings(): array {
-        $settings = get_option(self::OPTION_KEY, []);
-        
+    public static function get_settings() {
+        $all = get_option(self::OPTION_KEY, []);
+        $form_id = Counsel::get_form_id();
+
         $defaults = [
-            'messages' => [
-                'title'       => 'Important Notice',
-                'confirm'     => 'I understand',
-                'default_yes' => 'This answer may affect your eligibility. Please consult with an immigration attorney.',
-                'default_no'  => 'This answer may affect your eligibility. Please consult with an immigration attorney.',
-            ],
-            'field_overrides' => [],
-            'bounce_page_id'  => 704,
+            'default_message'       => '',
+            'default_no_message'    => '',
+            'confirm_message'       => '',
+            'arrest_bounce_message' => '',
+            'overrides'             => [],
         ];
 
-        if (isset($settings['counsel']) && is_array($settings['counsel'])) {
-            return array_replace_recursive($defaults, $settings['counsel']);
+        if (isset($all[$form_id]) && is_array($all[$form_id])) {
+            return array_merge($defaults, $all[$form_id]);
         }
-
         return $defaults;
     }
 
     /**
      * Save settings
      */
-    public static function save_settings(array $data): void {
-        $settings = get_option(self::OPTION_KEY, []);
+    public static function save_settings($data) {
+        $all = get_option(self::OPTION_KEY, []);
+        $form_id = Counsel::get_form_id();
+
+        $default_yes_raw = isset($data['default_message']) ? $data['default_message'] : '';
+        $default_no_raw  = isset($data['default_no_message']) ? $data['default_no_message'] : '';
+        $confirm_raw     = isset($data['confirm_message']) ? $data['confirm_message'] : '';
+        $arrest_raw      = isset($data['arrest_bounce_message']) ? $data['arrest_bounce_message'] : '';
+
+        if (is_string($default_yes_raw)) $default_yes_raw = wp_unslash($default_yes_raw);
+        if (is_string($default_no_raw))  $default_no_raw  = wp_unslash($default_no_raw);
+        if (is_string($confirm_raw))     $confirm_raw     = wp_unslash($confirm_raw);
+        if (is_string($arrest_raw))      $arrest_raw      = wp_unslash($arrest_raw);
 
         $clean = [
-            'messages' => [
-                'title'       => sanitize_text_field($data['messages']['title'] ?? 'Important Notice'),
-                'confirm'     => sanitize_text_field($data['messages']['confirm'] ?? 'I understand'),
-                'default_yes' => wp_kses_post($data['messages']['default_yes'] ?? ''),
-                'default_no'  => wp_kses_post($data['messages']['default_no'] ?? ''),
-            ],
-            'field_overrides' => [],
-            'bounce_page_id'  => (int) ($data['bounce_page_id'] ?? 704),
+            'default_message'       => wp_kses_post($default_yes_raw),
+            'default_no_message'    => wp_kses_post($default_no_raw),
+            'confirm_message'       => wp_kses_post($confirm_raw),
+            'arrest_bounce_message' => wp_kses_post($arrest_raw),
+            'overrides'             => [],
         ];
 
-        // Process field-specific overrides
-        if (isset($data['field_overrides']) && is_array($data['field_overrides'])) {
-            foreach ($data['field_overrides'] as $field_id => $message) {
-                $field_id = (int) $field_id;
-                $message = trim($message);
-                if ($field_id > 0 && !empty($message)) {
-                    $clean['field_overrides'][$field_id] = wp_kses_post($message);
+        if (isset($data['overrides']) && is_array($data['overrides'])) {
+            foreach ($data['overrides'] as $fid => $pair) {
+                $enabled = isset($pair['enabled']) && (string)$pair['enabled'] === '1';
+                $msg     = isset($pair['message']) ? $pair['message'] : '';
+                $fid     = (int) $fid;
+
+                if (is_string($msg)) $msg = wp_unslash($msg);
+                if ($enabled && $fid > 0 && $msg !== '') {
+                    $clean['overrides'][$fid] = wp_kses_post($msg);
                 }
             }
         }
 
-        $settings['counsel'] = $clean;
-        update_option(self::OPTION_KEY, $settings);
+        $all[$form_id] = $clean;
+        update_option(self::OPTION_KEY, $all);
     }
 
     /**
-     * Render admin page
+     * Enqueue admin assets
      */
-    public static function render_page(): void {
+    public static function enqueue_assets($hook) {
+        if (strpos($hook, 'nme-counsel') === false) {
+            return;
+        }
+
+        $module_url = plugin_dir_url(__FILE__);
+
+        wp_enqueue_script(
+            'nme-counsel-admin',
+            $module_url . 'assets/js/admin.js',
+            ['jquery'],
+            '1.5.0',
+            true
+        );
+
+        wp_enqueue_style(
+            'nme-counsel-admin',
+            $module_url . 'assets/css/admin.css',
+            [],
+            '1.5.0'
+        );
+    }
+
+    /**
+     * Render admin page - matches original NME-Settings UI
+     */
+    public static function render_page() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('You do not have permission to access this page.', 'nme-platform'));
         }
 
-        // Handle save
-        if (isset($_POST['nme_counsel_nonce']) && wp_verify_nonce($_POST['nme_counsel_nonce'], 'nme_counsel_save')) {
-            $data = isset($_POST['nme_counsel']) ? $_POST['nme_counsel'] : [];
-            self::save_settings($data);
-            echo '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';
-        }
-
+        $form_id  = Counsel::get_form_id();
         $settings = self::get_settings();
-        $messages = $settings['messages'];
-        $field_overrides = $settings['field_overrides'];
-        $bounce_page_id = $settings['bounce_page_id'];
+        $yes_fields = Counsel::get_yes_fields();
+        $no_fields  = Counsel::get_no_fields();
 
-        // Get form for field labels
-        $form = class_exists('GFAPI') ? \GFAPI::get_form(Counsel::FORM_ID) : [];
+        // Build field map from Gravity Forms
         $field_map = [];
-
-        if (is_array($form) && !empty($form['fields'])) {
-            foreach ($form['fields'] as $f) {
-                $fid = is_object($f) ? (int) $f->id : (int) ($f['id'] ?? 0);
-                if ($fid <= 0) continue;
-
-                $label = '';
-                if (is_object($f)) {
-                    if (!empty($f->adminLabel)) $label = (string) $f->adminLabel;
-                    if ($label === '' && isset($f->label)) $label = (string) $f->label;
-                } else {
-                    if (!empty($f['adminLabel'])) $label = (string) $f['adminLabel'];
-                    if ($label === '' && isset($f['label'])) $label = (string) $f['label'];
+        if (class_exists('\\GFAPI') && $form_id) {
+            $form = \GFAPI::get_form($form_id);
+            if (is_array($form) && !empty($form['fields'])) {
+                foreach ($form['fields'] as $f) {
+                    $field_map[(int)$f->id] = [
+                        'label' => (string)$f->label,
+                        'type'  => (string)$f->type,
+                    ];
                 }
-                if ($label === '') $label = 'Field ' . $fid;
-
-                $field_map[$fid] = $label;
             }
         }
 
-        // Get all monitored fields
-        $all_fields = Counsel::get_all_fields();
+        // Handle form submission
+        if (isset($_POST['nme_counsel_nonce']) && wp_verify_nonce($_POST['nme_counsel_nonce'], 'nme_counsel_save')) {
+            $data = isset($_POST['nme_counsel']) ? (array) $_POST['nme_counsel'] : [];
+            self::save_settings($data);
+            $settings = self::get_settings();
+            echo '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';
+        }
+
+        $default_yes = $settings['default_message'];
+        $default_no  = $settings['default_no_message'];
+        $confirm_msg = isset($settings['confirm_message']) ? $settings['confirm_message'] : '';
+        $arrest_msg  = isset($settings['arrest_bounce_message']) ? $settings['arrest_bounce_message'] : '';
+        $overrides   = is_array($settings['overrides']) ? $settings['overrides'] : [];
 
         ?>
-        <div class="wrap">
-            <h1>Application Counsel</h1>
-            <p>Configure modal messages shown when users answer eligibility questions on Form 39 (Additional Information).</p>
+        <div class="wrap nme-counsel-wrap">
+            <h1><?php esc_html_e('Application Counsel', 'nme-platform'); ?></h1>
+            <p><?php esc_html_e('Configure the default and per-question counseling messages.', 'nme-platform'); ?></p>
 
             <form method="post" action="">
                 <?php wp_nonce_field('nme_counsel_save', 'nme_counsel_nonce'); ?>
 
-                <h2>General Settings</h2>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="modal_title">Modal Title</label></th>
-                        <td>
-                            <input type="text" 
-                                   name="nme_counsel[messages][title]" 
-                                   id="modal_title"
-                                   value="<?php echo esc_attr($messages['title']); ?>"
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="confirm_button">Confirm Button Text</label></th>
-                        <td>
-                            <input type="text" 
-                                   name="nme_counsel[messages][confirm]" 
-                                   id="confirm_button"
-                                   value="<?php echo esc_attr($messages['confirm']); ?>"
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="bounce_page">Bounce Redirect Page</label></th>
-                        <td>
-                            <?php
-                            wp_dropdown_pages([
-                                'name'              => 'nme_counsel[bounce_page_id]',
-                                'id'                => 'bounce_page',
-                                'selected'          => $bounce_page_id,
-                                'show_option_none'  => '— Select Page —',
-                                'option_none_value' => 0,
-                            ]);
-                            ?>
-                            <p class="description">Page users are redirected to after submitting with a "bounce" flag.</p>
-                        </td>
-                    </tr>
-                </table>
+                <!-- Default YES -->
+                <h2><?php esc_html_e('Default "Yes" Message', 'nme-platform'); ?></h2>
+                <?php
+                wp_editor(
+                    $default_yes,
+                    'nme_counsel_default_yes',
+                    [
+                        'textarea_name' => 'nme_counsel[default_message]',
+                        'media_buttons' => false,
+                        'teeny'         => true,
+                        'editor_height' => 180,
+                    ]
+                );
+                ?>
 
-                <h2>Default Messages</h2>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="default_yes">Default YES Message</label></th>
-                        <td>
-                            <?php
-                            wp_editor($messages['default_yes'], 'default_yes_editor', [
-                                'textarea_name' => 'nme_counsel[messages][default_yes]',
-                                'media_buttons' => false,
-                                'teeny'         => true,
-                                'editor_height' => 120,
-                            ]);
-                            ?>
-                            <p class="description">Shown when user answers YES to a trigger field (unless overridden).</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="default_no">Default NO Message</label></th>
-                        <td>
-                            <?php
-                            wp_editor($messages['default_no'], 'default_no_editor', [
-                                'textarea_name' => 'nme_counsel[messages][default_no]',
-                                'media_buttons' => false,
-                                'teeny'         => true,
-                                'editor_height' => 120,
-                            ]);
-                            ?>
-                            <p class="description">Shown when user answers NO to a trigger field (unless overridden).</p>
-                        </td>
-                    </tr>
-                </table>
+                <!-- Default NO -->
+                <h2 style="margin-top:24px;"><?php esc_html_e('Default "No" Message', 'nme-platform'); ?></h2>
+                <?php
+                wp_editor(
+                    $default_no,
+                    'nme_counsel_default_no',
+                    [
+                        'textarea_name' => 'nme_counsel[default_no_message]',
+                        'media_buttons' => false,
+                        'teeny'         => true,
+                        'editor_height' => 180,
+                    ]
+                );
+                ?>
 
-                <h2>Field-Specific Overrides</h2>
-                <p>Leave blank to use the default message for that field type (YES or NO).</p>
+                <!-- Confirmation Message -->
+                <h2 style="margin-top:24px;"><?php esc_html_e('Confirmation Message', 'nme-platform'); ?></h2>
+                <p class="description"><?php esc_html_e('This message appears after the user clicks "Answer is Correct"', 'nme-platform'); ?></p>
+                <?php
+                wp_editor(
+                    $confirm_msg,
+                    'nme_counsel_confirm',
+                    [
+                        'textarea_name' => 'nme_counsel[confirm_message]',
+                        'media_buttons' => false,
+                        'teeny'         => true,
+                        'editor_height' => 180,
+                    ]
+                );
+                ?>
 
-                <?php if (empty($all_fields)): ?>
-                    <p>No trigger fields configured.</p>
+                <!-- Arrest & Criminal Bounce Message -->
+                <h2 style="margin-top:24px;"><?php esc_html_e('Arrest & Criminal Bounce', 'nme-platform'); ?></h2>
+                <p class="description"><?php esc_html_e('This message appears when field 940 contains "I have been convicted of a crime" and user clicks "Answer is Correct"', 'nme-platform'); ?></p>
+                <?php
+                wp_editor(
+                    $arrest_msg,
+                    'nme_counsel_arrest',
+                    [
+                        'textarea_name' => 'nme_counsel[arrest_bounce_message]',
+                        'media_buttons' => false,
+                        'teeny'         => true,
+                        'editor_height' => 180,
+                    ]
+                );
+                ?>
+
+                <h2 style="margin-top:24px;"><?php esc_html_e('Per-Question Overrides', 'nme-platform'); ?></h2>
+
+                <?php if (empty($yes_fields) && empty($no_fields)): ?>
+                    <p><?php esc_html_e('No configured fields.', 'nme-platform'); ?></p>
                 <?php else: ?>
-                    <table class="widefat striped" style="max-width: 900px;">
-                        <thead>
-                            <tr>
-                                <th style="width: 80px;">Field ID</th>
-                                <th style="width: 80px;">Trigger</th>
-                                <th>Question</th>
-                                <th>Custom Message</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($all_fields as $fid): 
-                                $is_yes = in_array($fid, Counsel::YES_FIELDS, true);
-                                $trigger = $is_yes ? 'YES' : 'NO';
-                                $label = $field_map[$fid] ?? 'Field ' . $fid;
-                                $override = $field_overrides[$fid] ?? '';
-                            ?>
-                            <tr>
-                                <td><strong><?php echo esc_html($fid); ?></strong></td>
-                                <td><code><?php echo esc_html($trigger); ?></code></td>
-                                <td><?php echo esc_html($label); ?></td>
-                                <td>
-                                    <textarea name="nme_counsel[field_overrides][<?php echo esc_attr($fid); ?>]"
-                                              rows="2" 
-                                              style="width: 100%;"><?php echo esc_textarea($override); ?></textarea>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+
+                <table class="widefat striped fixed nme-counsel-table">
+                    <thead>
+                        <tr>
+                            <th style="width:5%;text-align:center;"><?php esc_html_e('Use Custom Message', 'nme-platform'); ?></th>
+                            <th><?php esc_html_e('Question', 'nme-platform'); ?></th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <!-- YES Group -->
+                    <tr>
+                        <th colspan="2" style="background:#fafafa;padding:8px;font-size:15px;">
+                            <?php esc_html_e('Message on "Yes" Answers', 'nme-platform'); ?>
+                        </th>
+                    </tr>
+
+                    <?php foreach ($yes_fields as $fid): ?>
+                        <?php if (!isset($field_map[$fid])) continue; ?>
+                        <?php
+                            $label    = $field_map[$fid]['label'] ?: ('Field ' . $fid);
+                            $existing = isset($overrides[$fid]) ? (string)$overrides[$fid] : '';
+                            $checked  = $existing !== '' ? 'checked' : '';
+                            $toggleId = 'nme_counsel_override_' . $fid;
+                        ?>
+                        <tr>
+                            <td style="text-align:center;">
+                                <input type="checkbox"
+                                       id="<?php echo esc_attr($toggleId); ?>"
+                                       class="nme-counsel-toggle"
+                                       name="nme_counsel[overrides][<?php echo esc_attr($fid); ?>][enabled]"
+                                       value="1" <?php echo $checked; ?>>
+                            </td>
+                            <td>
+                                <strong>#<?php echo esc_html($fid); ?></strong> — <?php echo esc_html($label); ?>
+                                <div class="nme-counsel-editor-area" <?php echo $checked ? '' : 'style="display:none"'; ?>>
+                                    <?php
+                                    wp_editor(
+                                        $existing,
+                                        'nme_counsel_editor_' . $fid,
+                                        [
+                                            'textarea_name' => 'nme_counsel[overrides]['.$fid.'][message]',
+                                            'media_buttons' => false,
+                                            'teeny'         => true,
+                                            'editor_height' => 150,
+                                        ]
+                                    );
+                                    ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+
+
+                    <!-- NO Group -->
+                    <tr>
+                        <th colspan="2" style="background:#fafafa;padding:8px;font-size:15px;">
+                            <?php esc_html_e('Message on "No" Answers', 'nme-platform'); ?>
+                        </th>
+                    </tr>
+
+                    <?php foreach ($no_fields as $fid): ?>
+                        <?php if (!isset($field_map[$fid])) continue; ?>
+                        <?php
+                            $label    = $field_map[$fid]['label'] ?: ('Field ' . $fid);
+                            $existing = isset($overrides[$fid]) ? (string)$overrides[$fid] : '';
+                            $checked  = $existing !== '' ? 'checked' : '';
+                            $toggleId = 'nme_counsel_override_' . $fid;
+                        ?>
+                        <tr>
+                            <td style="text-align:center;">
+                                <input type="checkbox"
+                                       id="<?php echo esc_attr($toggleId); ?>"
+                                       class="nme-counsel-toggle"
+                                       name="nme_counsel[overrides][<?php echo esc_attr($fid); ?>][enabled]"
+                                       value="1" <?php echo $checked; ?>>
+                            </td>
+                            <td>
+                                <strong>#<?php echo esc_html($fid); ?></strong> — <?php echo esc_html($label); ?>
+                                <div class="nme-counsel-editor-area" <?php echo $checked ? '' : 'style="display:none"'; ?>>
+                                    <?php
+                                    wp_editor(
+                                        $existing,
+                                        'nme_counsel_editor_' . $fid,
+                                        [
+                                            'textarea_name' => 'nme_counsel[overrides]['.$fid.'][message]',
+                                            'media_buttons' => false,
+                                            'teeny'         => true,
+                                            'editor_height' => 150,
+                                        ]
+                                    );
+                                    ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+
+                    </tbody>
+                </table>
                 <?php endif; ?>
 
                 <p class="submit">
-                    <button type="submit" class="button button-primary">Save Changes</button>
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Save Changes', 'nme-platform'); ?></button>
                 </p>
             </form>
         </div>

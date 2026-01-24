@@ -1,0 +1,40 @@
+/* Counsel Admin Styles */
+.nme-counsel-wrap {
+    max-width: 1200px;
+}
+
+.nme-counsel-field {
+    border: 1px solid #ccd0d4;
+    padding: 10px;
+    margin: 10px 0;
+    background: #fff;
+}
+
+.nme-counsel-field-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.nme-counsel-editor {
+    margin-top: 8px;
+}
+
+.nme-counsel-table {
+    margin-top: 15px;
+}
+
+.nme-counsel-table th {
+    font-weight: 600;
+}
+
+.nme-counsel-editor-area {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+}
+
+.nme-counsel-editor-area .wp-editor-wrap {
+    max-width: 100%;
+}
