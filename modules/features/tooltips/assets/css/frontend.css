@@ -1,0 +1,188 @@
+/* NME Platform - Tooltips Frontend Styles */
+/* Matches original NME-Settings styling exactly */
+
+/* Ensure labels can contain positioned tooltips */
+.gfield_label,
+div b {
+    position: relative !important;
+}
+
+/* Tooltip Trigger Styling - Green Guidance Button */
+.gf-tooltip-trigger {
+    display: inline-block;
+    width: auto;
+    height: auto;
+    min-width: auto;
+    min-height: auto;
+    background: #28a745;
+    color: #ffffff !important;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 12px;
+    line-height: normal;
+    cursor: pointer;
+    position: relative;
+    margin-left: 10px;
+    padding: 4px 8px;
+    font-weight: bold !important;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    text-decoration: none;
+    overflow: visible;
+}
+
+.gf-tooltip-trigger:hover {
+    background: #218838;
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Responsive adjustments for the button */
+@media only screen and (max-width: 989px) {
+    .gf-tooltip-trigger {
+        padding: 3px 6px;
+        font-size: 11px;
+    }
+}
+
+@media only screen and (max-width: 767px) {
+    .gf-tooltip-trigger {
+        padding: 2px 5px;
+        font-size: 10px;
+    }
+}
+
+/* Tooltip Container - 90% width and centered below label */
+.gf-tooltip-container {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    width: 90vw;
+    max-width: 600px;
+    background: var(--enfold-main-color-bg, #ffffff);
+    color: var(--enfold-main-color-color, #666666);
+    border: 1px solid var(--enfold-main-color-border, #e1e1e1);
+    padding: 15px;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: normal;
+    white-space: pre-line;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+    z-index: 9999;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    line-height: 1.65em;
+    pointer-events: none;
+    box-sizing: border-box;
+    font-family: var(--enfold-font-family-body, 'open sans', Helvetica, Arial, sans-serif);
+}
+
+/* Arrow pointing up to the trigger */
+.gf-tooltip-container::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 20px;
+    border: 8px solid transparent;
+    border-bottom-color: var(--enfold-main-color-border, #e1e1e1);
+}
+
+.gf-tooltip-container::after {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 21px;
+    border: 7px solid transparent;
+    border-bottom-color: var(--enfold-main-color-bg, #ffffff);
+}
+
+/* Show tooltip only when trigger is clicked (active) */
+.gf-tooltip-trigger.active ~ .gf-tooltip-container,
+.gf-tooltip-container.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Responsive adjustments - Using Enfold breakpoints */
+@media only screen and (max-width: 989px) {
+    .gf-tooltip-container {
+        font-size: 13px;
+        width: 95vw;
+        padding: 12px;
+    }
+}
+
+@media only screen and (max-width: 767px) {
+    .gf-tooltip-container {
+        width: 98vw;
+        padding: 10px;
+        border-radius: 2px;
+    }
+}
+
+/* Ensure tooltip stays within form boundaries */
+.gform_wrapper {
+    overflow: visible;
+}
+
+/* Handle legend elements specifically */
+.gfield legend.gfield_label {
+    width: 100%;
+}
+
+/* Support for formatted text in tooltips - Using Enfold typography */
+.gf-tooltip-container p {
+    margin: 0 0 0.85em 0;
+    line-height: 1.65em;
+}
+
+.gf-tooltip-container ul {
+    margin: 0.85em 0;
+    padding-left: 20px;
+    list-style: disc outside;
+}
+
+.gf-tooltip-container ol {
+    margin: 0.85em 0;
+    padding-left: 20px;
+    list-style: decimal outside;
+}
+
+.gf-tooltip-container li {
+    margin-bottom: 0.4em;
+    line-height: 1.65em;
+}
+
+.gf-tooltip-container strong,
+.gf-tooltip-container b {
+    color: var(--enfold-main-color-heading, #222222);
+    font-weight: bold;
+}
+
+.gf-tooltip-container a {
+    color: var(--enfold-main-color-primary, #000081);
+    text-decoration: underline;
+}
+
+.gf-tooltip-container a:hover {
+    color: var(--enfold-main-color-secondary, #3d71a1);
+    text-decoration: none;
+}
+
+/* Additional styling for better integration */
+.gf-tooltip-container hr {
+    border: none;
+    border-top: 1px solid var(--enfold-main-color-border, #e1e1e1);
+    margin: 1em 0;
+}
+
+/* Enhanced accessibility */
+.gf-tooltip-trigger:focus {
+    outline: 2px solid var(--enfold-main-color-secondary, #3d71a1);
+    outline-offset: 2px;
+}

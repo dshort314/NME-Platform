@@ -1,289 +1,378 @@
 <?php
 /**
- * Tooltips Admin
+ * Tooltips Admin - NME Platform
  * 
- * Admin settings page for configuring form field tooltips.
- * Registers under NME Platform menu.
+ * Matches original NME-Settings admin UI exactly.
+ * Uses migrated data in nme_platform_settings['tooltips']
+ *
+ * @package NME_Platform
  */
 
-namespace NME\Features\Tooltips;
+namespace NME_Platform\Modules\Features\Tooltips;
 
-use NME\Core\FieldRegistry\FieldRegistry;
-
-defined('ABSPATH') || exit;
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 class Admin {
 
-    /** @var string Admin page slug */
-    const PAGE_SLUG = 'nme-tooltips';
-
-    /** @var string Option key */
+    /**
+     * Option key for tooltips settings (migrated location)
+     */
     const OPTION_KEY = 'nme_platform_settings';
 
     /**
      * Initialize admin hooks
      */
-    public static function init(): void {
-        if (!is_admin()) {
-            return;
-        }
-
+    public static function init() {
         add_action('admin_menu', [__CLASS__, 'add_submenu_page'], 20);
-        add_action('wp_ajax_nme_save_tooltip', [__CLASS__, 'ajax_save_tooltip']);
-        add_action('wp_ajax_nme_delete_tooltip', [__CLASS__, 'ajax_delete_tooltip']);
+        add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
+        add_action('wp_ajax_nme_tooltips_get_row', [__CLASS__, 'ajax_get_tooltip_row']);
     }
 
     /**
      * Add submenu page under NME Platform
      */
-    public static function add_submenu_page(): void {
+    public static function add_submenu_page() {
         add_submenu_page(
             'nme-platform',
-            'Form Tooltips',
-            'Tooltips',
+            __('Form Field Tooltips', 'nme-platform'),
+            __('Tooltips', 'nme-platform'),
             'manage_options',
-            self::PAGE_SLUG,
+            'nme-tooltips',
             [__CLASS__, 'render_page']
         );
     }
 
     /**
-     * Get form name by ID
+     * Get allowed form IDs
      */
-    private static function get_form_name(int $form_id): string {
-        $names = [
-            FieldRegistry::FORM_MASTER                 => 'Master Form (75)',
-            FieldRegistry::FORM_INFORMATION_ABOUT_YOU  => 'Information About You (70)',
-            FieldRegistry::FORM_TIME_OUTSIDE           => 'Time Outside US (76)',
-            FieldRegistry::FORM_RESIDENCES             => 'Residences (77)',
-            FieldRegistry::FORM_MARITAL_HISTORY        => 'Marital History (71)',
-            FieldRegistry::FORM_CHILDREN               => 'Children (72)',
-            FieldRegistry::FORM_EMPLOYMENT             => 'Employment (73)',
-            FieldRegistry::FORM_CRIMINAL_HISTORY       => 'Criminal History (74)',
-            FieldRegistry::FORM_ADDITIONAL_INFORMATION => 'Additional Information (39)',
-            FieldRegistry::FORM_PRELIMINARY_ELIGIBILITY => 'Preliminary Eligibility (78)',
-        ];
-
-        return $names[$form_id] ?? 'Form ' . $form_id;
+    public static function allowed_forms() {
+        return Tooltips::get_allowed_forms();
     }
 
     /**
-     * Render admin page
+     * Get all tooltip settings
      */
-    public static function render_page(): void {
+    public static function get_all_settings() {
+        $settings = get_option(self::OPTION_KEY, []);
+        return isset($settings['tooltips']['forms']) ? $settings['tooltips']['forms'] : [];
+    }
+
+    /**
+     * Get settings for a specific form
+     */
+    public static function get_form_settings($form_id) {
+        $all = self::get_all_settings();
+        return isset($all[$form_id]) && is_array($all[$form_id]) ? $all[$form_id] : [];
+    }
+
+    /**
+     * Save settings for a specific form
+     */
+    public static function save_form_settings($form_id, $tooltips) {
+        $settings = get_option(self::OPTION_KEY, []);
+        
+        if (!isset($settings['tooltips'])) {
+            $settings['tooltips'] = ['forms' => []];
+        }
+        if (!isset($settings['tooltips']['forms'])) {
+            $settings['tooltips']['forms'] = [];
+        }
+
+        // Clean and validate tooltips
+        $clean_tooltips = [];
+        if (is_array($tooltips)) {
+            foreach ($tooltips as $field_id => $data) {
+                $field_id = (int) $field_id;
+                if ($field_id <= 0) continue;
+
+                $message = isset($data['message']) ? $data['message'] : '';
+                $message = is_string($message) ? wp_unslash($message) : '';
+                $message = wp_kses_post($message);
+
+                if ($message !== '') {
+                    $clean_tooltips[$field_id] = $message;
+                }
+            }
+        }
+
+        if (empty($clean_tooltips)) {
+            unset($settings['tooltips']['forms'][$form_id]);
+        } else {
+            $settings['tooltips']['forms'][$form_id] = $clean_tooltips;
+        }
+
+        update_option(self::OPTION_KEY, $settings);
+    }
+
+    /**
+     * Get form title from Gravity Forms
+     */
+    public static function get_form_title($form_id) {
+        if (!class_exists('GFAPI')) return "Form $form_id";
+
+        $form = \GFAPI::get_form($form_id);
+        if (is_array($form) && isset($form['title'])) {
+            return $form['title'];
+        }
+
+        return "Form $form_id";
+    }
+
+    /**
+     * Get form fields for validation
+     */
+    public static function get_form_fields($form_id) {
+        if (!class_exists('GFAPI')) return [];
+
+        $form = \GFAPI::get_form($form_id);
+        if (!is_array($form) || empty($form['fields'])) return [];
+
+        $fields = [];
+        foreach ($form['fields'] as $field) {
+            $field_id = is_object($field) ? (int) $field->id : (int) ($field['id'] ?? 0);
+            $label = '';
+
+            if (is_object($field)) {
+                $label = !empty($field->adminLabel) ? $field->adminLabel : $field->label;
+            } else {
+                $label = !empty($field['adminLabel']) ? $field['adminLabel'] : ($field['label'] ?? '');
+            }
+
+            if ($field_id > 0) {
+                $fields[$field_id] = $label ?: "Field $field_id";
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Enqueue admin assets
+     */
+    public static function enqueue_assets($hook) {
+        if (strpos($hook, 'nme-tooltips') === false) {
+            return;
+        }
+
+        // Get module URL - construct it manually to avoid dependency issues
+        $module_url = plugin_dir_url(__FILE__);
+
+        wp_enqueue_style(
+            'nme-tooltips-admin',
+            $module_url . 'assets/css/admin.css',
+            [],
+            '1.0.0'
+        );
+
+        wp_enqueue_script(
+            'nme-tooltips-admin',
+            $module_url . 'assets/js/admin.js',
+            ['jquery'],
+            '1.0.0',
+            true
+        );
+
+        $selected_form = isset($_GET['form_id']) ? (int) $_GET['form_id'] : 0;
+        
+        wp_localize_script('nme-tooltips-admin', 'nmeTooltips', [
+            'nonce'       => wp_create_nonce('nme_tooltips_ajax'),
+            'ajaxurl'     => admin_url('admin-ajax.php'),
+            'formFields'  => $selected_form ? self::get_form_fields($selected_form) : [],
+            'selectedForm' => $selected_form,
+        ]);
+    }
+
+    /**
+     * Render the admin page - MATCHES ORIGINAL NME-SETTINGS UI
+     */
+    public static function render_page() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('You do not have permission to access this page.', 'nme-platform'));
         }
 
-        $allowed_forms = Tooltips::get_allowed_forms();
-        $current_form_id = isset($_GET['form_id']) ? (int) $_GET['form_id'] : ($allowed_forms[0] ?? 0);
+        $allowed_forms = self::allowed_forms();
+        $selected_form = isset($_GET['form_id']) ? (int) $_GET['form_id'] : 0;
 
-        // Get tooltips for current form
-        $tooltips = Tooltips::get_tooltips_for_form($current_form_id);
+        // Default to first allowed form if none selected
+        if (!$selected_form && !empty($allowed_forms)) {
+            $selected_form = $allowed_forms[0];
+        }
 
-        // Get form fields
-        $form = class_exists('GFAPI') ? \GFAPI::get_form($current_form_id) : [];
-        $fields = [];
+        // Validate selected form is in allowed list
+        if ($selected_form && !in_array($selected_form, $allowed_forms, true)) {
+            $selected_form = 0;
+        }
 
-        if (is_array($form) && !empty($form['fields'])) {
-            foreach ($form['fields'] as $f) {
-                $fid = is_object($f) ? (int) $f->id : (int) ($f['id'] ?? 0);
-                if ($fid <= 0) continue;
+        // Handle form submission
+        if (isset($_POST['nme_tooltips_nonce']) && wp_verify_nonce($_POST['nme_tooltips_nonce'], 'nme_tooltips_save')) {
+            $form_id = isset($_POST['form_id']) ? (int) $_POST['form_id'] : 0;
+            $tooltips = isset($_POST['tooltips']) ? (array) $_POST['tooltips'] : [];
 
-                $label = '';
-                if (is_object($f)) {
-                    if (!empty($f->adminLabel)) $label = (string) $f->adminLabel;
-                    if ($label === '' && isset($f->label)) $label = (string) $f->label;
-                } else {
-                    if (!empty($f['adminLabel'])) $label = (string) $f['adminLabel'];
-                    if ($label === '' && isset($f['label'])) $label = (string) $f['label'];
-                }
-                if ($label === '') $label = 'Field ' . $fid;
-
-                $type = is_object($f) ? ($f->type ?? 'unknown') : ($f['type'] ?? 'unknown');
-
-                $fields[$fid] = [
-                    'id'    => $fid,
-                    'label' => $label,
-                    'type'  => $type,
-                ];
+            if ($form_id && in_array($form_id, $allowed_forms, true)) {
+                self::save_form_settings($form_id, $tooltips);
+                echo '<div class="notice notice-success is-dismissible"><p>Tooltips saved successfully.</p></div>';
+                $selected_form = $form_id;
             }
         }
 
+        $current_tooltips = $selected_form ? self::get_form_settings($selected_form) : [];
+        $form_fields = $selected_form ? self::get_form_fields($selected_form) : [];
         ?>
-        <div class="wrap">
-            <h1>Form Tooltips</h1>
-            <p>Add help text tooltips to form fields. Tooltips appear as a "?" icon next to field labels.</p>
+        <div class="wrap nme-tooltips-wrap">
+            <h1><?php esc_html_e('Form Field Tooltips', 'nme-platform'); ?></h1>
+            <p><?php esc_html_e('Add helpful guidance tooltips to form fields. Select a form below to manage its tooltips.', 'nme-platform'); ?></p>
 
-            <h2 class="nav-tab-wrapper">
-                <?php foreach ($allowed_forms as $form_id): 
-                    $active = ($form_id === $current_form_id) ? 'nav-tab-active' : '';
-                    $url = add_query_arg(['page' => self::PAGE_SLUG, 'form_id' => $form_id], admin_url('admin.php'));
-                ?>
-                    <a href="<?php echo esc_url($url); ?>" class="nav-tab <?php echo $active; ?>">
-                        <?php echo esc_html(self::get_form_name($form_id)); ?>
-                    </a>
-                <?php endforeach; ?>
-            </h2>
+            <?php if (empty($allowed_forms)): ?>
+                <div class="notice notice-warning">
+                    <p><?php esc_html_e('No forms are configured for tooltips.', 'nme-platform'); ?></p>
+                </div>
+            <?php else: ?>
 
-            <div style="margin-top: 20px;">
-                <?php if (empty($fields)): ?>
-                    <p>No fields found for this form, or the form does not exist.</p>
-                <?php else: ?>
-                    <table class="widefat striped" style="max-width: 1000px;">
-                        <thead>
-                            <tr>
-                                <th style="width: 60px;">ID</th>
-                                <th style="width: 100px;">Type</th>
-                                <th style="width: 250px;">Field Label</th>
-                                <th>Tooltip Text</th>
-                                <th style="width: 120px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($fields as $fid => $field): 
-                                $tooltip_text = $tooltips[$fid] ?? '';
-                                $has_tooltip = !empty($tooltip_text);
-                            ?>
-                            <tr data-field-id="<?php echo esc_attr($fid); ?>">
-                                <td><strong><?php echo esc_html($fid); ?></strong></td>
-                                <td><code><?php echo esc_html($field['type']); ?></code></td>
-                                <td><?php echo esc_html($field['label']); ?></td>
-                                <td>
-                                    <textarea class="nme-tooltip-text" 
-                                              rows="2" 
-                                              style="width: 100%;"
-                                              placeholder="Enter tooltip text..."><?php echo esc_textarea($tooltip_text); ?></textarea>
-                                </td>
-                                <td>
-                                    <button type="button" class="button nme-save-tooltip">Save</button>
-                                    <?php if ($has_tooltip): ?>
-                                        <button type="button" class="button nme-delete-tooltip" style="color: #a00;">Delete</button>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <!-- Form Selection Dropdown -->
+                <div class="nme-form-selector">
+                    <h2><?php esc_html_e('Select Form', 'nme-platform'); ?></h2>
+                    <select id="form-selector" onchange="window.location.href='<?php echo admin_url('admin.php?page=nme-tooltips&form_id='); ?>' + this.value">
+                        <option value=""><?php esc_html_e('Choose a form...', 'nme-platform'); ?></option>
+                        <?php foreach ($allowed_forms as $form_id): ?>
+                            <option value="<?php echo esc_attr($form_id); ?>" <?php selected($form_id, $selected_form); ?>>
+                                <?php echo esc_html(self::get_form_title($form_id)); ?> (ID: <?php echo esc_html($form_id); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-                    <script>
-                    jQuery(function($) {
-                        var formId = <?php echo (int) $current_form_id; ?>;
+                <?php if ($selected_form): ?>
+                    <form method="post" action="" class="nme-tooltips-form">
+                        <?php wp_nonce_field('nme_tooltips_save', 'nme_tooltips_nonce'); ?>
+                        <input type="hidden" name="form_id" value="<?php echo esc_attr($selected_form); ?>">
 
-                        $('.nme-save-tooltip').on('click', function() {
-                            var $btn = $(this);
-                            var $row = $btn.closest('tr');
-                            var fieldId = $row.data('field-id');
-                            var text = $row.find('.nme-tooltip-text').val().trim();
+                        <h2><?php echo esc_html(self::get_form_title($selected_form)); ?> - Tooltips</h2>
 
-                            $btn.prop('disabled', true).text('Saving...');
+                        <div class="nme-tooltips-container">
+                            <div class="nme-tooltips-header">
+                                <h3>Current Tooltips</h3>
+                                <button type="button" class="button button-secondary" id="add-tooltip-btn">
+                                    <span class="dashicons dashicons-plus-alt"></span> Add Tooltip
+                                </button>
+                            </div>
 
-                            $.post(ajaxurl, {
-                                action: 'nme_save_tooltip',
-                                form_id: formId,
-                                field_id: fieldId,
-                                text: text,
-                                _wpnonce: '<?php echo wp_create_nonce('nme_tooltip_nonce'); ?>'
-                            }, function(response) {
-                                $btn.prop('disabled', false).text('Save');
-                                if (response.success) {
-                                    $btn.text('Saved!');
-                                    setTimeout(function() { $btn.text('Save'); }, 1500);
-                                    
-                                    // Add delete button if not present
-                                    if (text && !$row.find('.nme-delete-tooltip').length) {
-                                        $btn.after(' <button type="button" class="button nme-delete-tooltip" style="color: #a00;">Delete</button>');
-                                    }
-                                } else {
-                                    alert('Error saving tooltip: ' + (response.data || 'Unknown error'));
-                                }
-                            }).fail(function() {
-                                $btn.prop('disabled', false).text('Save');
-                                alert('Error saving tooltip');
-                            });
-                        });
+                            <div id="tooltips-list">
+                                <?php if (!empty($current_tooltips)): ?>
+                                    <?php foreach ($current_tooltips as $field_id => $message): ?>
+                                        <div class="tooltip-row" data-field-id="<?php echo esc_attr($field_id); ?>">
+                                            <div class="tooltip-controls">
+                                                <label>Field ID:</label>
+                                                <input type="number"
+                                                       name="tooltips[<?php echo esc_attr($field_id); ?>][field_id]"
+                                                       value="<?php echo esc_attr($field_id); ?>"
+                                                       min="1"
+                                                       class="small-text tooltip-field-id"
+                                                       readonly>
+                                                <?php if (isset($form_fields[$field_id])): ?>
+                                                    <span class="field-info field-exists"><?php echo esc_html($form_fields[$field_id]); ?></span>
+                                                <?php else: ?>
+                                                    <span class="field-info field-missing">⚠️ Field not found in form</span>
+                                                <?php endif; ?>
+                                                <button type="button" class="button-link-delete remove-tooltip-btn">
+                                                    <span class="dashicons dashicons-trash"></span> Remove
+                                                </button>
+                                            </div>
+                                            <div class="tooltip-message">
+                                                <label>Tooltip Message:</label>
+                                                <?php
+                                                wp_editor(
+                                                    $message,
+                                                    'tooltip_editor_' . $field_id,
+                                                    [
+                                                        'textarea_name' => 'tooltips[' . $field_id . '][message]',
+                                                        'media_buttons' => false,
+                                                        'teeny'         => true,
+                                                        'editor_height' => 100,
+                                                        'textarea_rows' => 3,
+                                                    ]
+                                                );
+                                                ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="no-tooltips">
+                                        <p><?php esc_html_e('No tooltips configured for this form yet.', 'nme-platform'); ?></p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
 
-                        $(document).on('click', '.nme-delete-tooltip', function() {
-                            var $btn = $(this);
-                            var $row = $btn.closest('tr');
-                            var fieldId = $row.data('field-id');
-
-                            if (!confirm('Delete this tooltip?')) return;
-
-                            $btn.prop('disabled', true).text('Deleting...');
-
-                            $.post(ajaxurl, {
-                                action: 'nme_delete_tooltip',
-                                form_id: formId,
-                                field_id: fieldId,
-                                _wpnonce: '<?php echo wp_create_nonce('nme_tooltip_nonce'); ?>'
-                            }, function(response) {
-                                if (response.success) {
-                                    $row.find('.nme-tooltip-text').val('');
-                                    $btn.remove();
-                                } else {
-                                    $btn.prop('disabled', false).text('Delete');
-                                    alert('Error deleting tooltip');
-                                }
-                            }).fail(function() {
-                                $btn.prop('disabled', false).text('Delete');
-                                alert('Error deleting tooltip');
-                            });
-                        });
-                    });
-                    </script>
+                        <p class="submit">
+                            <button type="submit" class="button button-primary"><?php esc_html_e('Save Tooltips', 'nme-platform'); ?></button>
+                        </p>
+                    </form>
                 <?php endif; ?>
-            </div>
+            <?php endif; ?>
         </div>
         <?php
     }
 
     /**
-     * AJAX: Save tooltip
+     * AJAX handler to get a new tooltip row with WYSIWYG editor
      */
-    public static function ajax_save_tooltip(): void {
-        check_ajax_referer('nme_tooltip_nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized');
+    public static function ajax_get_tooltip_row() {
+        if (!wp_verify_nonce($_POST['nonce'], 'nme_tooltips_ajax')) {
+            wp_die('Security check failed');
         }
 
-        $form_id = (int) ($_POST['form_id'] ?? 0);
-        $field_id = (int) ($_POST['field_id'] ?? 0);
-        $text = sanitize_textarea_field($_POST['text'] ?? '');
+        $form_id = isset($_POST['form_id']) ? (int) $_POST['form_id'] : 0;
+        $field_id = isset($_POST['field_id']) ? (int) $_POST['field_id'] : 0;
+        $allowed_forms = self::allowed_forms();
 
-        if ($form_id <= 0 || $field_id <= 0) {
+        if (!$form_id || !in_array($form_id, $allowed_forms, true) || !$field_id) {
             wp_send_json_error('Invalid form or field ID');
         }
 
-        if (empty($text)) {
-            // Empty text = remove tooltip
-            Tooltips::remove_tooltip($form_id, $field_id);
-        } else {
-            Tooltips::set_tooltip($form_id, $field_id, $text);
-        }
+        $form_fields = self::get_form_fields($form_id);
+        $field_label = isset($form_fields[$field_id]) ? $form_fields[$field_id] : '';
 
-        wp_send_json_success();
-    }
+        ob_start();
+        ?>
+        <div class="tooltip-row" data-field-id="<?php echo esc_attr($field_id); ?>">
+            <div class="tooltip-controls">
+                <label>Field ID:</label>
+                <input type="number"
+                       name="tooltips[<?php echo esc_attr($field_id); ?>][field_id]"
+                       value="<?php echo esc_attr($field_id); ?>"
+                       min="1"
+                       class="small-text tooltip-field-id">
+                <?php if ($field_label): ?>
+                    <span class="field-info field-exists"><?php echo esc_html($field_label); ?></span>
+                <?php else: ?>
+                    <span class="field-info field-missing">⚠️ Field not found in form</span>
+                <?php endif; ?>
+                <button type="button" class="button-link-delete remove-tooltip-btn">
+                    <span class="dashicons dashicons-trash"></span> Remove
+                </button>
+            </div>
+            <div class="tooltip-message">
+                <label>Tooltip Message:</label>
+                <?php
+                wp_editor(
+                    '',
+                    'tooltip_editor_' . $field_id,
+                    [
+                        'textarea_name' => 'tooltips[' . $field_id . '][message]',
+                        'media_buttons' => false,
+                        'teeny'         => true,
+                        'editor_height' => 100,
+                        'textarea_rows' => 3,
+                    ]
+                );
+                ?>
+            </div>
+        </div>
+        <?php
 
-    /**
-     * AJAX: Delete tooltip
-     */
-    public static function ajax_delete_tooltip(): void {
-        check_ajax_referer('nme_tooltip_nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized');
-        }
-
-        $form_id = (int) ($_POST['form_id'] ?? 0);
-        $field_id = (int) ($_POST['field_id'] ?? 0);
-
-        if ($form_id <= 0 || $field_id <= 0) {
-            wp_send_json_error('Invalid form or field ID');
-        }
-
-        Tooltips::remove_tooltip($form_id, $field_id);
-        wp_send_json_success();
+        $html = ob_get_clean();
+        wp_send_json_success(['html' => $html, 'field_label' => $field_label]);
     }
 }

@@ -52,7 +52,7 @@ class Admin {
         }
 
         add_submenu_page(
-            'gf_edit_forms',
+            'nme-platform',
             'Preliminary Eligibility',
             'Preliminary Eligibility',
             'manage_options',

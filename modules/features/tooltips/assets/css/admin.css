@@ -1,0 +1,228 @@
+/* NME Platform - Tooltips Admin Styles */
+/* Matches original NME-Settings admin styling */
+
+.nme-tooltips-wrap {
+    max-width: 1200px;
+}
+
+.nme-form-selector {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.nme-form-selector h2 {
+    margin-top: 0;
+}
+
+.nme-form-selector select {
+    min-width: 300px;
+    font-size: 14px;
+}
+
+.nme-tooltips-container {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+.nme-tooltips-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #ccd0d4;
+    background: #f9f9f9;
+}
+
+.nme-tooltips-header h3 {
+    margin: 0;
+}
+
+#add-tooltip-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#tooltips-list {
+    min-height: 100px;
+}
+
+.no-tooltips {
+    padding: 40px;
+    text-align: center;
+    color: #666;
+}
+
+.no-tooltips p {
+    font-size: 16px;
+    margin: 0;
+}
+
+.tooltip-row {
+    border-bottom: 1px solid #eee;
+    padding: 20px;
+    position: relative;
+}
+
+.tooltip-row:last-child {
+    border-bottom: none;
+}
+
+.tooltip-row:hover {
+    background: #fafafa;
+}
+
+.tooltip-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.tooltip-controls label {
+    font-weight: 600;
+}
+
+.tooltip-field-id {
+    width: 80px;
+}
+
+.field-info {
+    color: #666;
+    font-style: italic;
+    flex: 1;
+}
+
+.field-info.field-exists {
+    color: #00a32a;
+    font-weight: 500;
+}
+
+.field-info.field-missing {
+    color: #d63638;
+    font-weight: 500;
+}
+
+.remove-tooltip-btn {
+    color: #d63638;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+.remove-tooltip-btn:hover {
+    background: #d63638;
+    color: #fff;
+}
+
+.remove-tooltip-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.tooltip-message {
+    margin-top: 10px;
+}
+
+.tooltip-message label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.tooltip-message .wp-editor-wrap {
+    max-width: 100%;
+}
+
+.tooltip-message textarea {
+    width: 100%;
+    max-width: 800px;
+}
+
+/* Animation for adding/removing rows */
+.tooltip-row {
+    transition: all 0.3s ease;
+    opacity: 1;
+    max-height: 1000px;
+    overflow: hidden;
+}
+
+.tooltip-row.removing {
+    opacity: 0;
+    max-height: 0;
+    padding: 0 20px;
+    margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nme-tooltips-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .tooltip-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .field-info {
+        flex: none;
+    }
+    
+    .nme-form-selector select {
+        min-width: 100%;
+    }
+}
+
+/* Better spacing for WordPress editor */
+.tooltip-message .wp-editor-area {
+    border: 1px solid #ddd;
+}
+
+.tooltip-message .wp-editor-container {
+    border: none;
+}
+
+/* Success/error messaging */
+.notice {
+    margin: 15px 0;
+}
+
+/* Loading state */
+.tooltips-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.tooltips-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #ccc;
+    border-top-color: #0073aa;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
