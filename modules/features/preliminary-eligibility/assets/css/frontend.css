@@ -1,0 +1,60 @@
+/**
+ * Preliminary Eligibility Form Styling
+ */
+
+/* Special styling for fields 82 and 83 radio button layout */
+.gchoice_78_82_0,
+.gchoice_78_83_0 {
+  padding-bottom: 15px;
+}
+
+.gchoice_78_82_0,
+.gchoice_78_82_1,
+.gchoice_78_83_0,
+.gchoice_78_83_1 {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 1em;
+}
+
+.gchoice_78_82_0 .gfield-choice-input,
+.gchoice_78_82_1 .gfield-choice-input,
+.gchoice_78_83_0 .gfield-choice-input,
+.gchoice_78_83_1 .gfield-choice-input {
+  margin-top: 4px !important;
+}
+
+.gchoice_78_82_0 label,
+.gchoice_78_82_1 label,
+.gchoice_78_83_0 label,
+.gchoice_78_83_1 label {
+  display: inline-block;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Result page styling */
+.prelim-negative-result {
+  margin: 20px 0;
+  padding: 15px;
+  border-left: 4px solid #d63638;
+  background: #f9f9f9;
+}
+
+.prelim-negative-result h3 {
+  margin-top: 0;
+  color: #d63638;
+}
+
+.prelim-message {
+  line-height: 1.6;
+}
+
+.prelim-message p {
+  margin: 0 0 1em;
+}
+
+.prelim-message ul,
+.prelim-message ol {
+  margin: 0 0 1em 1.5em;
+}

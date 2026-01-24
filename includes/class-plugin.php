@@ -12,6 +12,9 @@ defined('ABSPATH') || exit;
 
 class Plugin {
 
+    /** @var string Plugin version constant for cache-busting */
+    const VERSION = NME_PLATFORM_VERSION;
+
     /** @var bool Whether plugin has been initialized */
     private static bool $initialized = false;
 
@@ -87,6 +90,60 @@ class Plugin {
      */
     public static function get_debug_settings(): array {
         return self::$settings['debug'] ?? ['modules' => [], 'global' => false];
+    }
+
+    /**
+     * Get URL to a module's directory
+     * 
+     * @param string $module_id Module ID (e.g., 'preliminary-eligibility')
+     * @return string URL with trailing slash
+     */
+    public static function get_module_url(string $module_id): string {
+        // Get the module info to determine its type
+        $modules = ModuleLoader::get_modules();
+        
+        if (isset($modules[$module_id])) {
+            $type = $modules[$module_id]['type'] ?? 'features';
+            return NME_PLATFORM_URL . 'modules/' . $type . '/' . $module_id . '/';
+        }
+        
+        // Fallback: search all type directories
+        $types = ['core', 'features', 'topics', 'admin'];
+        foreach ($types as $type) {
+            $path = NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
+            if (is_dir($path)) {
+                return NME_PLATFORM_URL . 'modules/' . $type . '/' . $module_id . '/';
+            }
+        }
+        
+        // Default fallback
+        return NME_PLATFORM_URL . 'modules/features/' . $module_id . '/';
+    }
+
+    /**
+     * Get filesystem path to a module's directory
+     * 
+     * @param string $module_id Module ID
+     * @return string Path with trailing slash
+     */
+    public static function get_module_path(string $module_id): string {
+        $modules = ModuleLoader::get_modules();
+        
+        if (isset($modules[$module_id])) {
+            $type = $modules[$module_id]['type'] ?? 'features';
+            return NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
+        }
+        
+        // Fallback: search all type directories
+        $types = ['core', 'features', 'topics', 'admin'];
+        foreach ($types as $type) {
+            $path = NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
+            if (is_dir($path)) {
+                return $path;
+            }
+        }
+        
+        return NME_PLATFORM_PATH . 'modules/features/' . $module_id . '/';
     }
 
     /**

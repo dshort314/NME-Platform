@@ -14,7 +14,7 @@ return [
     'name'        => 'Employment & Schools',
     'type'        => 'topics',
     'description' => 'Form 73 - employment and school history',
-    'requires'    => ['field-registry', 'user-context', 'master-form', 'gpnf-integration'],
+    'requires'    => ['field-registry', 'user-context', 'master-form', 'gpnf'],
     'boot'        => function() {
         require_once __DIR__ . '/class-handler.php';
         Handler::init();
