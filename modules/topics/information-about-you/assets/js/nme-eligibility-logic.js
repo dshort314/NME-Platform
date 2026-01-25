@@ -8,20 +8,9 @@
 (function($, window, document) {
     'use strict';
 
-    const MODULE_ID = 'information-about-you';
-
     // Create namespace
     window.NMEApp = window.NMEApp || {};
     window.NMEApp.EligibilityLogic = {};
-
-    /**
-     * Debug helper
-     */
-    function debug(...args) {
-        if (typeof NMEDebug !== 'undefined') {
-            NMEDebug(MODULE_ID, ...args);
-        }
-    }
 
     /**
      * Determine the controlling factor for eligibility
@@ -237,33 +226,32 @@
     window.NMEApp.EligibilityLogic.updateFormWithResults = function(result) {
         const DateCalc = window.NMEApp.DateCalculations;
         
-        debug("controllingDesc:", result.controllingDesc);
+        console.log("controllingDesc:", result.controllingDesc);
 
-        // Show/hide Next button and highlight fields based on LPR value and eligibility
-        if ($('#input_70_23').val()) {
-            if (result.controllingDesc === "LPRC - 1A" || 
-                result.controllingDesc === "DMC - 2A" || 
-                result.controllingDesc === "SCC - 2A") {
-                // Eligible Now - show reminder modal about highlighted fields
-                window.NMEApp.ModalAlerts.displayLPRMessage(
-                    "Based upon the information you entered you may file now. Please make sure the values highlighted above are correct as you <strong>cannot change them later</strong>."
-                );
-                window.NMEApp.FieldVisibility.toggleNextButton(false);
-            } else if (result.status) {
-                // Not eligible yet - show next button with reminder
-                window.NMEApp.FieldVisibility.toggleNextButton(true);
-                window.NMEApp.ModalAlerts.displayLPRMessage(
-                    "You can move on to the next page but please make sure the values highlighted above are correct before you submit this form as you <strong>cannot change them later</strong>."
-                );
-            }
-            
-            // Always highlight key fields when LPR is present
+        // Clear the old LPR-specific message
+        window.NMEApp.ModalAlerts.clearLPRMessage();
+        
+        // Show/hide based on its value
+        if ($('#input_70_23').val() && result.controllingDesc === "LPRC - 1A") {
+            window.NMEApp.ModalAlerts.displayLPRMessage(
+                "Based upon the information you entered you may file now.  Please make sure the values highlighted above are correct as you <b>cannot change them later</b>"
+            );
+            window.NMEApp.FieldVisibility.toggleNextButton(false);
+            window.NMEApp.FieldVisibility.highlightFields(
+                ["#input_70_5", "#input_70_10", "#input_70_23"], 
+                true
+            );
+        } else if ($('#input_70_23').val()) {
+            window.NMEApp.FieldVisibility.toggleNextButton(true);
+            window.NMEApp.ModalAlerts.displayLPRMessage(
+                "<p>You can move on to the next page but please make sure the values highlighted above are correct before you submit this form as you <b>cannot change them later</b></p>"
+            );
             window.NMEApp.FieldVisibility.highlightFields(
                 ["#input_70_5", "#input_70_10", "#input_70_23"], 
                 true
             );
         } else {
-            // No LPR value - hide next button and remove highlights
+            // If input_70_23 has no value, hide both elements
             window.NMEApp.FieldVisibility.toggleNextButton(false);
             window.NMEApp.FieldVisibility.highlightFields(
                 ["#input_70_5", "#input_70_10", "#input_70_23"], 
@@ -287,12 +275,8 @@
         $('#input_70_36').val(result.controllingDesc || "").trigger('change');
         $('#input_70_37').val(result.status || "").trigger('change');
         
-        // Display application message modal (only if status changed)
-        window.NMEApp.ModalAlerts.displayApplicationMessage(
-            result.applicationMessage,
-            result.status,
-            result.controllingDesc
-        );
+        // Display application message
+        window.NMEApp.ModalAlerts.displayApplicationMessage(result.applicationMessage);
     };
 
     /**
@@ -318,10 +302,8 @@
         $('#input_70_35').val("").trigger('change');
         $('#input_70_36').val("").trigger('change');
         $('#input_70_37').val("").trigger('change');
-        
-        // Reset message tracking so next calculation will show modal
-        window.NMEApp.ModalAlerts.resetMessageTracking();
-        
+        window.NMEApp.ModalAlerts.clearApplicationMessage();
+        window.NMEApp.ModalAlerts.clearLPRMessage();
         window.NMEApp.FieldVisibility.toggleNextButton(false);
         window.NMEApp.FieldVisibility.highlightFields(
             ["#input_70_5", "#input_70_10", "#input_70_23"], 

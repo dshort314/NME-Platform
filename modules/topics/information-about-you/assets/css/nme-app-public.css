@@ -1,16 +1,81 @@
 /**
  * NME Application Public Styles
  * 
- * Styles for field highlighting, navigation buttons, and other UI elements.
- * 
- * NOTE: Modal styles have been moved to the centralized modal system at
- * modules/core/modals/assets/css/nme-modals.css
+ * Styles for modals, field highlighting, navigation buttons, and other UI elements
  */
 
-/* ============================================
-   APPLICATION MESSAGES (Legacy - may be removed)
-   ============================================ */
+/* Modal Overlay */
+#customOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
+/* Modal Container */
+#customModal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Modal Content */
+#customModal p {
+    margin-bottom: 15px;
+    line-height: 1.6;
+    color: #333;
+    font-size: 16px;
+}
+
+#customModal p:last-of-type {
+    margin-bottom: 20px;
+}
+
+/* Modal Close Button */
+#customModal .close-btn {
+    background-color: #0073aa;
+    color: #ffffff;
+    border: none;
+    padding: 10px 30px;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+    margin: 20px auto 0;
+    transition: background-color 0.3s ease;
+}
+
+#customModal .close-btn:hover {
+    background-color: #005a87;
+}
+
+#customModal .back-btn {
+	margin-right: 10px;
+}
+
+
+#customModal .close-btn:focus {
+    outline: 2px solid #005a87;
+    outline-offset: 2px;
+}
+
+/* Application Messages */
 #application-message,
 #application-message-lpr {
     margin: 15px 0;
@@ -30,10 +95,7 @@
     color: #d63638;
 }
 
-/* ============================================
-   FIELD HIGHLIGHTING
-   ============================================ */
-
+/* Field Highlighting */
 .nme-highlighted-field {
     background-color: #ffff90 !important;
     color: #000000 !important;
@@ -53,10 +115,7 @@ textarea.nme-highlighted-field {
     color: rgba(0, 0, 0, 0.6);
 }
 
-/* ============================================
-   HIDE/SHOW FIELD ANIMATIONS
-   ============================================ */
-
+/* Hide/Show Field Animations */
 .gfield {
     transition: all 0.3s ease;
 }
@@ -67,10 +126,7 @@ textarea.nme-highlighted-field {
     overflow: hidden;
 }
 
-/* ============================================
-   BUTTON STATES
-   ============================================ */
-
+/* Button States */
 #gform_next_button_70_49 {
     transition: opacity 0.3s ease;
 }
@@ -80,10 +136,7 @@ textarea.nme-highlighted-field {
     pointer-events: none;
 }
 
-/* ============================================
-   FORM FIELD GROUPS
-   ============================================ */
-
+/* Form Field Groups */
 .nme-form-section {
     margin-bottom: 25px;
     padding: 20px;
@@ -99,10 +152,7 @@ textarea.nme-highlighted-field {
     font-weight: 600;
 }
 
-/* ============================================
-   STATUS INDICATORS
-   ============================================ */
-
+/* Status Indicators */
 .nme-status-indicator {
     display: inline-block;
     padding: 4px 12px;
@@ -131,10 +181,7 @@ textarea.nme-highlighted-field {
     border: 1px solid #f5c6cb;
 }
 
-/* ============================================
-   LOADING STATES
-   ============================================ */
-
+/* Loading States */
 .nme-loading {
     opacity: 0.6;
     pointer-events: none;
@@ -160,10 +207,7 @@ textarea.nme-highlighted-field {
     100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* ============================================
-   ERROR/SUCCESS STATES
-   ============================================ */
-
+/* Error States */
 .nme-error {
     background-color: #f8d7da;
     color: #721c24;
@@ -182,19 +226,13 @@ textarea.nme-highlighted-field {
     margin: 10px 0;
 }
 
-/* ============================================
-   NAVIGATION CONTAINER
-   ============================================ */
-
+/* Navigation Container */
 .nme-nav-container {
     max-width: 900px;
     margin: 0 auto 20px auto;
 }
 
-/* ============================================
-   NAVIGATION GRID LAYOUTS
-   ============================================ */
-
+/* Navigation Grid Layouts */
 .nme-nav-grid,
 .button-grid {
     display: grid;
@@ -251,10 +289,7 @@ textarea.nme-highlighted-field {
     margin-top: 16px;
 }
 
-/* ============================================
-   NAVIGATION BUTTONS - BASE STYLES
-   ============================================ */
-
+/* Navigation Buttons - Base Styles */
 .nme-nav-button,
 .nav-button {
     display: flex;
@@ -275,10 +310,7 @@ textarea.nme-highlighted-field {
     font-weight: 600;
 }
 
-/* ============================================
-   DARK THEME BUTTONS (DEFAULT)
-   ============================================ */
-
+/* Dark Theme Buttons (Default) */
 .nme-nav-grid.dark-theme .nme-nav-button,
 .button-grid.dark-theme .nav-button,
 .dark-theme .nav-button {
@@ -309,10 +341,7 @@ textarea.nme-highlighted-field {
     color: white !important;
 }
 
-/* ============================================
-   LIGHT THEME BUTTONS
-   ============================================ */
-
+/* Light Theme Buttons */
 .nme-nav-button-light,
 .nme-nav-grid.light-theme .nme-nav-button,
 .button-grid.light-theme .nav-button {
@@ -358,10 +387,7 @@ textarea.nme-highlighted-field {
     background-image: url('/wp-content/plugins/NME-Application-main/public/images/icons/icon-dashboard-light.svg');
 }
 
-/* ============================================
-   ICON STYLES
-   ============================================ */
-
+/* Icon base styles from test.html */
 .icon {
     width: 32px;
     height: 32px;
@@ -405,11 +431,23 @@ textarea.nme-highlighted-field {
     outline-offset: 2px;
 }
 
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
-
+/* Responsive Design */
 @media (max-width: 768px) {
+    #customModal {
+        width: 95%;
+        padding: 20px;
+        max-height: 90vh;
+    }
+    
+    #customModal p {
+        font-size: 14px;
+    }
+    
+    #customModal .close-btn {
+        font-size: 14px;
+        padding: 8px 24px;
+    }
+    
     .nme-form-section {
         padding: 15px;
         margin-bottom: 20px;
@@ -450,11 +488,13 @@ textarea.nme-highlighted-field {
     }
 }
 
-/* ============================================
-   PRINT STYLES
-   ============================================ */
-
+/* Print Styles */
 @media print {
+    #customOverlay,
+    #customModal {
+        display: none !important;
+    }
+    
     .nme-highlighted-field {
         background-color: transparent !important;
         color: #000000 !important;
@@ -462,10 +502,7 @@ textarea.nme-highlighted-field {
     }
 }
 
-/* ============================================
-   ACCESSIBILITY IMPROVEMENTS
-   ============================================ */
-
+/* Accessibility Improvements */
 @media (prefers-reduced-motion: reduce) {
     * {
         transition: none !important;
@@ -475,6 +512,10 @@ textarea.nme-highlighted-field {
 
 /* High Contrast Mode Support */
 @media (prefers-contrast: high) {
+    #customModal {
+        border: 2px solid #000000;
+    }
+    
     .nme-highlighted-field {
         outline: 3px solid #000000;
         outline-offset: 2px;
@@ -487,14 +528,25 @@ textarea.nme-highlighted-field {
     outline-offset: 2px;
 }
 
-/* ============================================
-   DARK MODE SUPPORT
-   ============================================ */
-
+/* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
+    #customModal {
+        background-color: #2c2c2c;
+        color: #ffffff;
+    }
+    
+    #customModal p {
+        color: #e0e0e0;
+    }
+    
     .nme-form-section {
         background-color: #3c3c3c;
         border-color: #5c5c5c;
         color: #e0e0e0;
     }
+}
+
+/* Dashboard icon for light theme */
+.light-theme .dashboard-icon {
+    background-image: url('/wp-content/plugins/NME-Application-main/public/images/icons/icon-dashboard-light.svg');
 }
