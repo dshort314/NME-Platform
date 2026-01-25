@@ -1,0 +1,385 @@
+/**
+ * NME Platform - Global Modal Styles
+ * 
+ * Centralized styling for all modal dialogs across the platform.
+ * Modify styles here to change appearance globally.
+ */
+
+/* ============================================
+   MODAL OVERLAY
+   ============================================ */
+
+.nme-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 99998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.nme-modal-overlay.nme-modal-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ============================================
+   MODAL CONTAINER
+   ============================================ */
+
+.nme-modal {
+    position: relative;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+
+.nme-modal-overlay.nme-modal-visible .nme-modal {
+    transform: scale(1);
+}
+
+/* ============================================
+   MODAL HEADER
+   ============================================ */
+
+.nme-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.nme-modal-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.nme-modal-title {
+    margin: 0;
+    padding: 0;
+    color: #1a1a1a;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    flex-grow: 1;
+}
+
+/* Header without icon */
+.nme-modal-header:not(:has(.nme-modal-icon)) .nme-modal-title {
+    padding-top: 0;
+}
+
+/* ============================================
+   MODAL CONTENT/BODY
+   ============================================ */
+
+.nme-modal-body {
+    margin-bottom: 25px;
+}
+
+.nme-modal-body p {
+    margin: 0 0 15px 0;
+    line-height: 1.6;
+    color: #333333;
+    font-size: 16px;
+}
+
+.nme-modal-body p:last-child {
+    margin-bottom: 0;
+}
+
+.nme-modal-body strong {
+    color: #1a1a1a;
+}
+
+.nme-modal-body em {
+    font-style: italic;
+    color: #d63638;
+}
+
+/* Lists in modal body */
+.nme-modal-body ul,
+.nme-modal-body ol {
+    margin: 15px 0;
+    padding-left: 25px;
+    color: #333333;
+}
+
+.nme-modal-body li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.nme-modal-body li:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================
+   MODAL FOOTER / BUTTONS
+   ============================================ */
+
+.nme-modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.nme-modal-btn {
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    min-width: 120px;
+    text-align: center;
+}
+
+.nme-modal-btn:hover {
+    transform: translateY(-1px);
+}
+
+.nme-modal-btn:active {
+    transform: translateY(0);
+}
+
+.nme-modal-btn:focus {
+    outline: 2px solid #005a87;
+    outline-offset: 2px;
+}
+
+.nme-modal-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Primary button (Continue, I Understand, OK) */
+.nme-modal-btn-primary {
+    background-color: #0073aa;
+    color: #ffffff;
+}
+
+.nme-modal-btn-primary:hover:not(:disabled) {
+    background-color: #005a87;
+}
+
+/* Secondary button (Back, Cancel) */
+.nme-modal-btn-secondary {
+    background-color: #666666;
+    color: #ffffff;
+}
+
+.nme-modal-btn-secondary:hover:not(:disabled) {
+    background-color: #555555;
+}
+
+/* Danger button (for warnings/errors) */
+.nme-modal-btn-danger {
+    background-color: #d63638;
+    color: #ffffff;
+}
+
+.nme-modal-btn-danger:hover:not(:disabled) {
+    background-color: #b32d2e;
+}
+
+/* ============================================
+   MODAL TYPE VARIATIONS
+   ============================================ */
+
+/* Info Modal - Blue theme */
+.nme-modal-type-info .nme-modal-icon {
+    background-color: #e7f3ff;
+    color: #0073aa;
+}
+
+/* Confirm Modal - Blue theme */
+.nme-modal-type-confirm .nme-modal-icon {
+    background-color: #e7f3ff;
+    color: #0073aa;
+}
+
+/* Warning Modal - Yellow/Orange theme */
+.nme-modal-type-warning .nme-modal-icon {
+    background-color: #fff8e5;
+    color: #996800;
+}
+
+.nme-modal-type-warning .nme-modal {
+    border-top: 4px solid #dba617;
+}
+
+/* Error Modal - Red theme */
+.nme-modal-type-error .nme-modal-icon {
+    background-color: #fce8e8;
+    color: #d63638;
+}
+
+.nme-modal-type-error .nme-modal {
+    border-top: 4px solid #d63638;
+}
+
+/* Success Modal - Green theme */
+.nme-modal-type-success .nme-modal-icon {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.nme-modal-type-success .nme-modal {
+    border-top: 4px solid #2e7d32;
+}
+
+/* ============================================
+   CLOSE BUTTON (OPTIONAL X IN CORNER)
+   ============================================ */
+
+.nme-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 24px;
+    color: #999999;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.nme-modal-close:hover {
+    color: #333333;
+    background-color: #f0f0f0;
+}
+
+.nme-modal-close:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+    .nme-modal {
+        width: 95%;
+        padding: 20px;
+        max-height: 90vh;
+    }
+    
+    .nme-modal-title {
+        font-size: 18px;
+    }
+    
+    .nme-modal-body p {
+        font-size: 14px;
+    }
+    
+    .nme-modal-btn {
+        font-size: 14px;
+        padding: 10px 24px;
+        min-width: 100px;
+    }
+    
+    .nme-modal-footer {
+        flex-direction: column-reverse;
+    }
+    
+    .nme-modal-footer .nme-modal-btn {
+        width: 100%;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .nme-modal-overlay,
+    .nme-modal,
+    .nme-modal-btn {
+        transition: none;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .nme-modal {
+        border: 2px solid #000000;
+    }
+    
+    .nme-modal-btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* ============================================
+   DARK MODE SUPPORT (FUTURE)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    .nme-modal {
+        background-color: #2c2c2c;
+        color: #ffffff;
+    }
+    
+    .nme-modal-title {
+        color: #ffffff;
+    }
+    
+    .nme-modal-body p {
+        color: #e0e0e0;
+    }
+    
+    .nme-modal-body strong {
+        color: #ffffff;
+    }
+    
+    .nme-modal-close {
+        color: #cccccc;
+    }
+    
+    .nme-modal-close:hover {
+        color: #ffffff;
+        background-color: #444444;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    .nme-modal-overlay {
+        display: none !important;
+    }
+}

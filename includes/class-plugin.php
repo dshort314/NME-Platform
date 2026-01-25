@@ -12,138 +12,139 @@ defined('ABSPATH') || exit;
 
 class Plugin {
 
-    /** @var string Plugin version constant for cache-busting */
+    /** @var string Plugin version */
     const VERSION = NME_PLATFORM_VERSION;
-
-    /** @var bool Whether plugin has been initialized */
-    private static bool $initialized = false;
-
-    /** @var array Cached settings */
-    private static array $settings = [];
 
     /**
      * Initialize the plugin
      */
     public static function init(): void {
-        if (self::$initialized) {
-            return;
-        }
-
-        self::$initialized = true;
-
-        // Load settings
-        self::$settings = get_option('nme_platform_settings', []);
-
-        // Load the module loader
-        require_once NME_PLATFORM_PATH . 'includes/class-module-loader.php';
-        ModuleLoader::init();
-
-        // Admin menu
-        add_action('admin_menu', [__CLASS__, 'register_admin_menu'], 10);
-
-        // Handle debug toggle AJAX
+        // Register admin menu
+        add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
+        
+        // Register AJAX handler for debug toggle
         add_action('wp_ajax_nme_toggle_debug', [__CLASS__, 'handle_debug_toggle']);
+        
+        // Enqueue global debug script on frontend
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_debug_script']);
+        
+        // Enqueue global debug script on admin (if needed later)
+        add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_debug_script']);
+    }
+
+    /**
+     * Enqueue the global debug utility script and pass all debug flags
+     */
+    public static function enqueue_debug_script(): void {
+        wp_enqueue_script(
+            'nme-debug',
+            NME_PLATFORM_URL . 'modules/core/debug/nme-debug.js',
+            [],
+            self::VERSION,
+            false // Load in header so it's available to all other scripts
+        );
+
+        // Get all module debug flags
+        $debug_flags = self::get_all_debug_flags();
+        
+        // Pass debug flags to JavaScript
+        wp_localize_script('nme-debug', 'nme_debug_flags', $debug_flags);
+    }
+
+    /**
+     * Get debug flags for all registered modules
+     * 
+     * @return array Associative array of module_id => bool
+     */
+    public static function get_all_debug_flags(): array {
+        $modules = ModuleLoader::get_modules();
+        $flags = [];
+        
+        foreach ($modules as $id => $module) {
+            $flags[$id] = self::is_debug_enabled($id);
+        }
+        
+        return $flags;
     }
 
     /**
      * Check if debug is enabled for a specific module
      * 
-     * @param string $module_id Module ID to check
-     * @return bool Whether debug is enabled
+     * @param string $module_id Module identifier
+     * @return bool
      */
     public static function is_debug_enabled(string $module_id): bool {
-        // Refresh settings cache if empty
-        if (empty(self::$settings)) {
-            self::$settings = get_option('nme_platform_settings', []);
-        }
-
-        // Check module-specific setting first
-        if (isset(self::$settings['debug']['modules'][$module_id])) {
-            return (bool) self::$settings['debug']['modules'][$module_id];
-        }
-
-        // Fall back to global setting
-        return (bool) (self::$settings['debug']['global'] ?? false);
+        $settings = self::get_debug_settings();
+        return isset($settings['modules'][$module_id]) 
+            ? (bool) $settings['modules'][$module_id] 
+            : false;
     }
 
     /**
-     * Enable or disable debug for a module
+     * Set debug enabled/disabled for a module
      * 
-     * @param string $module_id Module ID
-     * @param bool $enabled Whether to enable debug
+     * @param string $module_id Module identifier
+     * @param bool $enabled Whether debug is enabled
      * @return bool Success
      */
     public static function set_debug_enabled(string $module_id, bool $enabled): bool {
-        if (!isset(self::$settings['debug'])) {
-            self::$settings['debug'] = ['modules' => [], 'global' => false];
+        $settings = get_option('nme_platform_settings', []);
+        
+        if (!isset($settings['debug'])) {
+            $settings['debug'] = ['modules' => [], 'global' => false];
         }
-
-        self::$settings['debug']['modules'][$module_id] = $enabled;
-
-        return update_option('nme_platform_settings', self::$settings);
+        
+        $settings['debug']['modules'][$module_id] = $enabled;
+        
+        return update_option('nme_platform_settings', $settings);
     }
 
     /**
      * Get all debug settings
      * 
-     * @return array Debug settings
+     * @return array
      */
     public static function get_debug_settings(): array {
-        return self::$settings['debug'] ?? ['modules' => [], 'global' => false];
+        $settings = get_option('nme_platform_settings', []);
+        return $settings['debug'] ?? ['modules' => [], 'global' => false];
     }
 
     /**
-     * Get URL to a module's directory
+     * Get URL for a module's assets directory
      * 
-     * @param string $module_id Module ID (e.g., 'preliminary-eligibility')
-     * @return string URL with trailing slash
+     * @param string $module_id Module identifier
+     * @return string|null URL or null if module not found
      */
-    public static function get_module_url(string $module_id): string {
-        // Get the module info to determine its type
+    public static function get_module_url(string $module_id): ?string {
         $modules = ModuleLoader::get_modules();
         
-        if (isset($modules[$module_id])) {
-            $type = $modules[$module_id]['type'] ?? 'features';
-            return NME_PLATFORM_URL . 'modules/' . $type . '/' . $module_id . '/';
+        if (!isset($modules[$module_id])) {
+            return null;
         }
         
-        // Fallback: search all type directories
-        $types = ['core', 'features', 'topics', 'admin'];
-        foreach ($types as $type) {
-            $path = NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
-            if (is_dir($path)) {
-                return NME_PLATFORM_URL . 'modules/' . $type . '/' . $module_id . '/';
-            }
-        }
+        $module = $modules[$module_id];
+        $type = $module['type'] ?? 'features';
         
-        // Default fallback
-        return NME_PLATFORM_URL . 'modules/features/' . $module_id . '/';
+        return NME_PLATFORM_URL . 'modules/' . $type . '/' . $module_id . '/';
     }
 
     /**
-     * Get filesystem path to a module's directory
+     * Get filesystem path for a module
      * 
-     * @param string $module_id Module ID
-     * @return string Path with trailing slash
+     * @param string $module_id Module identifier
+     * @return string|null Path or null if module not found
      */
-    public static function get_module_path(string $module_id): string {
+    public static function get_module_path(string $module_id): ?string {
         $modules = ModuleLoader::get_modules();
         
-        if (isset($modules[$module_id])) {
-            $type = $modules[$module_id]['type'] ?? 'features';
-            return NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
+        if (!isset($modules[$module_id])) {
+            return null;
         }
         
-        // Fallback: search all type directories
-        $types = ['core', 'features', 'topics', 'admin'];
-        foreach ($types as $type) {
-            $path = NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
-            if (is_dir($path)) {
-                return $path;
-            }
-        }
+        $module = $modules[$module_id];
+        $type = $module['type'] ?? 'features';
         
-        return NME_PLATFORM_PATH . 'modules/features/' . $module_id . '/';
+        return NME_PLATFORM_PATH . 'modules/' . $type . '/' . $module_id . '/';
     }
 
     /**
@@ -225,7 +226,7 @@ class Plugin {
                         <th>Type</th>
                         <th>Dependencies</th>
                         <th>Status</th>
-                        <th style="width: 80px; text-align: center;">Debug</th>
+                        <th style="width: 100px; text-align: center;">Console Debug</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -237,32 +238,27 @@ class Plugin {
                         <?php foreach ($modules as $id => $module): ?>
                             <?php 
                             $is_debug = isset($debug_settings['modules'][$id]) 
-                                ? (bool) $debug_settings['modules'][$id] 
+                                ? $debug_settings['modules'][$id] 
                                 : false;
+                            $is_loaded = in_array($id, $loaded);
                             ?>
                             <tr>
                                 <td><code><?php echo esc_html($id); ?></code></td>
                                 <td><?php echo esc_html($module['name'] ?? $id); ?></td>
-                                <td><?php echo esc_html($module['type'] ?? '—'); ?></td>
+                                <td><?php echo esc_html($module['type'] ?? 'unknown'); ?></td>
+                                <td><?php echo esc_html(implode(', ', $module['requires'] ?? [])); ?></td>
                                 <td>
-                                    <?php 
-                                    $deps = $module['requires'] ?? [];
-                                    echo $deps ? esc_html(implode(', ', $deps)) : '—';
-                                    ?>
-                                </td>
-                                <td>
-                                    <?php if (in_array($id, $loaded)): ?>
+                                    <?php if ($is_loaded): ?>
                                         <span style="color: green;">✓ Loaded</span>
                                     <?php else: ?>
-                                        <span style="color: red;">✗ Not loaded</span>
+                                        <span style="color: red;">✗ Not Loaded</span>
                                     <?php endif; ?>
                                 </td>
                                 <td style="text-align: center;">
                                     <input type="checkbox" 
                                            class="nme-debug-toggle" 
                                            data-module="<?php echo esc_attr($id); ?>"
-                                           <?php checked($is_debug); ?>
-                                           title="Toggle debug logging for <?php echo esc_attr($module['name'] ?? $id); ?>">
+                                           <?php checked($is_debug); ?>>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -271,8 +267,10 @@ class Plugin {
             </table>
             
             <p class="description" style="margin-top: 10px;">
-                <strong>Debug:</strong> When enabled, the module will write detailed logs to the PHP error log. 
-                Useful for troubleshooting but may impact performance.
+                <strong>Console Debug:</strong> When enabled, the module will write detailed logs to the browser's JavaScript console. 
+                Open DevTools (F12) → Console tab to view. Useful for troubleshooting frontend issues.
+                <br><br>
+                <em>Note: You must refresh the frontend page after toggling for changes to take effect.</em>
             </p>
         </div>
         
