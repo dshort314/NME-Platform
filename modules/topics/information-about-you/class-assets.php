@@ -49,7 +49,7 @@ class Assets {
      * 
      * Scripts are loaded in dependency order:
      * 1. date-calculations - Core date parsing and formatting
-     * 2. modal-alerts - Modal dialog system
+     * 2. modal-alerts - Modal dialog system (depends on nme-modals)
      * 3. eligibility-logic - Controlling factor determination (depends on date-calculations)
      * 4. form-handlers - Form event handlers (depends on date-calculations)
      * 5. field-visibility - Conditional field display
@@ -75,11 +75,11 @@ class Assets {
             true
         );
 
-        // 2. Modal Alerts - no dependencies beyond jQuery
+        // 2. Modal Alerts - depends on global modal system
         wp_enqueue_script(
             'nme-modal-alerts',
             $base_url . 'nme-modal-alerts.js',
-            ['jquery'],
+            ['jquery', 'nme-modals'],
             $version,
             true
         );

@@ -203,14 +203,34 @@
     };
 
     /**
-     * Show or hide the Next button based on LPR field
-     * @param {boolean} show - Whether to show the button
+     * Hide both navigation buttons
+     * 
+     * Used when no LPR date has been entered yet - user cannot proceed
+     * until they enter their LPR date.
+     */
+    window.NMEApp.FieldVisibility.hideAllButtons = function() {
+        $("#gform_next_button_70_49").hide();
+        $("#gform_submit_button_70").hide();
+    };
+
+    /**
+     * Show or hide the Next button based on eligibility
+     * 
+     * Controls both the Next button (for users who need page 2) and the
+     * Submit button (for users eligible to file now who skip page 2).
+     * 
+     * @param {boolean} show - True to show Next button (hide Submit), 
+     *                         False to show Submit button (hide Next)
      */
     window.NMEApp.FieldVisibility.toggleNextButton = function(show) {
         if (show) {
+            // Show Next, hide Submit (not eligible yet, need page 2)
             $("#gform_next_button_70_49").show();
+            $("#gform_submit_button_70").hide();
         } else {
+            // Hide Next, show Submit (eligible now, skip page 2)
             $("#gform_next_button_70_49").hide();
+            $("#gform_submit_button_70").show();
         }
     };
 

@@ -17,14 +17,6 @@
             return;
         }
 
-        // Hide the next button on initial load
-        $("#gform_next_button_70_49").hide();
-        
-        // Check if LPR field is empty and hide both buttons if so
-        if (!$('#input_70_23').val()) {
-            $("#gform_next_button_70_49").hide();
-        }
-
         // Initialize all modules in the correct order
         
         // 1. Field Visibility must be initialized first as it sets up the form structure
@@ -37,8 +29,10 @@
             window.NMEApp.FormHandlers.init();
         }
 
-        // 3. After form handlers are set up, run initial eligibility check if there's an LPR date
-        if (window.NMEApp.EligibilityLogic && $('#input_70_23').val()) {
+        // 3. Run eligibility check - this controls button visibility
+        // If no LPR value, it will hide the Next button and show Submit
+        // If LPR value exists, it will show/hide based on eligibility
+        if (window.NMEApp.EligibilityLogic) {
             window.NMEApp.EligibilityLogic.determineAndUpdateEligibility();
         }
 
@@ -54,11 +48,32 @@
     });
 
     /**
-     * Also initialize when Gravity Forms page changes (for multi-page forms)
+     * Gravity Forms post-render handler
+     * 
+     * This fires AFTER Gravity Forms has fully rendered the form.
+     * Re-run eligibility to ensure button state is correct.
+     */
+    $(document).on('gform_post_render', function(event, form_id, current_page) {
+        if (form_id === 70) {
+            if (current_page === 1 && window.NMEApp.EligibilityLogic) {
+                window.NMEApp.EligibilityLogic.determineAndUpdateEligibility();
+            }
+            
+            if (current_page === 2 && window.NMEApp.FieldVisibility) {
+                window.NMEApp.FieldVisibility.init();
+            }
+        }
+    });
+
+    /**
+     * Also handle AJAX page navigation within the form
      */
     $(document).on('gform_page_loaded', function(event, form_id, current_page) {
         if (form_id === 70) {
-            // Re-initialize field visibility for page 2
+            if (current_page === 1 && window.NMEApp.EligibilityLogic) {
+                window.NMEApp.EligibilityLogic.determineAndUpdateEligibility();
+            }
+            
             if (current_page === 2 && window.NMEApp.FieldVisibility) {
                 window.NMEApp.FieldVisibility.init();
             }

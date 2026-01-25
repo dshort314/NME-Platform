@@ -62,6 +62,31 @@
     };
 
     /**
+     * Restore page 1 UI state (Next button, highlights) based on existing field values
+     * Called on init when page 1 fields are already populated (e.g., navigating back from page 2)
+     */
+    window.NMEApp.FormHandlers.restorePage1UIState = function() {
+        // Only run on page 1
+        var isPage1 = $('#gform_page_70_1').is(':visible');
+        if (!isPage1) {
+            return;
+        }
+        
+        var hasDOB = $('#input_70_5').val();
+        var hasAlienNumber = $('#input_70_10').val();
+        var hasLPR = $('#input_70_23').val();
+        
+        // If all required fields have values, restore the UI state
+        if (hasDOB && hasAlienNumber && hasLPR) {
+            window.NMEApp.FieldVisibility.toggleNextButton(true);
+            window.NMEApp.FieldVisibility.highlightFields(
+                ["#input_70_5", "#input_70_10", "#input_70_23"], 
+                true
+            );
+        }
+    };
+
+    /**
      * Update Today date and trigger related updates
      */
     window.NMEApp.FormHandlers.updateToday = function() {
@@ -338,6 +363,9 @@
         window.NMEApp.FormHandlers.restoreFromSession();
         window.NMEApp.FormHandlers.setupEventHandlers();
         window.NMEApp.FormHandlers.initializeFormValues();
+        
+        // Restore page 1 UI state if fields are already populated (e.g., navigating back from page 2)
+        window.NMEApp.FormHandlers.restorePage1UIState();
         
         // Trigger initial eligibility determination if function exists
         if (window.NMEApp.EligibilityLogic && window.NMEApp.EligibilityLogic.determineAndUpdateEligibility) {

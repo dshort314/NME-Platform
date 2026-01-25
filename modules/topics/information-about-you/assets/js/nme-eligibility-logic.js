@@ -227,12 +227,21 @@
         const DateCalc = window.NMEApp.DateCalculations;
         
         console.log("controllingDesc:", result.controllingDesc);
-
-        // Clear the old LPR-specific message
-        window.NMEApp.ModalAlerts.clearLPRMessage();
         
-        // Show/hide based on its value
-        if ($('#input_70_23').val() && result.controllingDesc === "LPRC - 1A") {
+        // Check if LPR field has a value
+        if (!$('#input_70_23').val()) {
+            // No LPR date - hide both buttons
+            window.NMEApp.FieldVisibility.hideAllButtons();
+            window.NMEApp.FieldVisibility.highlightFields(
+                ["#input_70_5", "#input_70_10", "#input_70_23"], 
+                false
+            );
+            return;
+        }
+        
+        // LPR date exists - show appropriate button based on eligibility
+        if (result.controllingDesc === "LPRC - 1A") {
+            // Eligible Now - show Submit button (skip page 2)
             window.NMEApp.ModalAlerts.displayLPRMessage(
                 "Based upon the information you entered you may file now.  Please make sure the values highlighted above are correct as you <b>cannot change them later</b>"
             );
@@ -241,7 +250,8 @@
                 ["#input_70_5", "#input_70_10", "#input_70_23"], 
                 true
             );
-        } else if ($('#input_70_23').val()) {
+        } else {
+            // Not eligible yet - show Next button (go to page 2)
             window.NMEApp.FieldVisibility.toggleNextButton(true);
             window.NMEApp.ModalAlerts.displayLPRMessage(
                 "<p>You can move on to the next page but please make sure the values highlighted above are correct before you submit this form as you <b>cannot change them later</b></p>"
@@ -249,13 +259,6 @@
             window.NMEApp.FieldVisibility.highlightFields(
                 ["#input_70_5", "#input_70_10", "#input_70_23"], 
                 true
-            );
-        } else {
-            // If input_70_23 has no value, hide both elements
-            window.NMEApp.FieldVisibility.toggleNextButton(false);
-            window.NMEApp.FieldVisibility.highlightFields(
-                ["#input_70_5", "#input_70_10", "#input_70_23"], 
-                false
             );
         }
 
@@ -304,7 +307,7 @@
         $('#input_70_37').val("").trigger('change');
         window.NMEApp.ModalAlerts.clearApplicationMessage();
         window.NMEApp.ModalAlerts.clearLPRMessage();
-        window.NMEApp.FieldVisibility.toggleNextButton(false);
+        window.NMEApp.FieldVisibility.hideAllButtons();
         window.NMEApp.FieldVisibility.highlightFields(
             ["#input_70_5", "#input_70_10", "#input_70_23"], 
             false
