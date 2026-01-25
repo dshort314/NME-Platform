@@ -19,6 +19,9 @@ class Plugin {
      * Initialize the plugin
      */
     public static function init(): void {
+        // Discover and load modules first
+        ModuleLoader::init();
+        
         // Register admin menu
         add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
         

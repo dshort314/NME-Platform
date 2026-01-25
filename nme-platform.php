@@ -3,7 +3,7 @@
  * Plugin Name: NME Platform
  * Description: Naturalization application management system
  * Version: 1.0.0
- * Author: Darin Kershner
+ * Author: Short Results
  * Text Domain: nme-platform
  * Requires at least: 6.0
  * Requires PHP: 8.0
