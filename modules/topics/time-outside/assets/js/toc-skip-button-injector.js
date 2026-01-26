@@ -2,7 +2,7 @@
  * TOC Skip Button Injector
  *
  * Injects navigation buttons based on entry state:
- * - "Skip to Residences" - shown if NO TOC entries exist (allows skipping TOC)
+ * - "No Trips Taken" - shown if NO TOC entries exist (updates Master Form and redirects to Residences)
  * - "Cancel" - shown if TOC entries exist (returns to dashboard)
  *
  * Also handles redirect when all TOC entries are deleted.
@@ -17,7 +17,7 @@
      * Inject skip/cancel button based on entry state
      */
     function injectSkipButton() {
-        // Only run on form 42 (TOC form)
+        // Only run on form 42 (TOC form) on add page
         if (!$('#gform_42').length) {
             return;
         }
@@ -52,8 +52,8 @@
                 console.log('TOC Skip: Response', response);
 
                 if (response.success && !response.data.has_entries) {
-                    // No entries exist - show "Skip to Residences" button
-                    injectSkipToResidencesButton();
+                    // No entries exist - show "No Trips Taken" button
+                    injectNoTripsButton(anumber, parentEntryId);
                 } else {
                     // Entries exist - show "Cancel" button
                     injectCancelButton();
@@ -66,25 +66,24 @@
     }
 
     /**
-     * Inject "Skip to Residences" button (no entries exist)
+     * Inject "No Trips Taken" button (no entries exist)
      */
-    function injectSkipToResidencesButton() {
+    function injectNoTripsButton(anumber, parentEntryId) {
         // Check if button already exists
-        if ($('#skip-to-residences-button').length) {
-            console.log('TOC Skip: Skip button already exists');
+        if ($('#no-trips-button').length) {
+            console.log('TOC Skip: No Trips button already exists');
             return;
         }
 
         // Style the footer for proper alignment
         styleFormFooter();
 
-        // Create Skip button
-        var skipButton = $('<a/>', {
+        // Create No Trips button
+        var noTripsButton = $('<a/>', {
             href: '#',
-            id: 'skip-to-residences-button',
-            'data-nme-nav': 'residences',
+            id: 'no-trips-button',
             'class': 'gvx-nav-btn gform_button button',
-            text: 'Skip to Residences',
+            text: 'No Trips Taken',
             css: {
                 'margin-right': '10px',
                 'line-height': '13px'
@@ -92,16 +91,79 @@
         });
 
         // Inject button before the Submit button
-        $('.gform_footer #gform_submit_button_42').before(skipButton);
+        $('.gform_footer #gform_submit_button_42').before(noTripsButton);
 
-        console.log('TOC Skip: Skip button injected - no entries exist');
+        console.log('TOC Skip: No Trips button injected - no entries exist');
 
-        // Trigger navigation script to process the Skip button
-        if (typeof window.NMENavigation !== 'undefined' && window.NMENavigation.setupButton) {
-            setTimeout(function() {
-                window.NMENavigation.setupButton($('#skip-to-residences-button'));
-            }, 100);
+        // Handle click
+        noTripsButton.on('click', function(e) {
+            e.preventDefault();
+            handleNoTripsClick(anumber, parentEntryId);
+        });
+    }
+
+    /**
+     * Handle No Trips button click
+     */
+    function handleNoTripsClick(anumber, parentEntryId) {
+        // Get lookback date for confirmation message
+        var lookbackDate = window.tocLookbackStartDateFormatted || 'the filing period start date';
+
+        // Show confirmation modal
+        if (typeof window.NMEApp !== 'undefined' && window.NMEApp.TOCAlerts) {
+            window.NMEApp.TOCAlerts.showNoTripsConfirm(
+                lookbackDate,
+                function() {
+                    // On confirm - call AJAX to set No Trips and get redirect URL
+                    setNoTripsAndRedirect(anumber, parentEntryId);
+                },
+                function() {
+                    // On cancel - do nothing
+                    console.log('TOC Skip: No Trips cancelled');
+                }
+            );
+        } else {
+            // Fallback if TOCAlerts not available
+            NMEModal.confirm({
+                title: 'No Trips Outside US',
+                message: 'Are you sure you have not traveled outside the United States since ' + lookbackDate + '?',
+                confirmText: 'Yes, No Trips',
+                cancelText: 'Cancel',
+                onConfirm: function() {
+                    setNoTripsAndRedirect(anumber, parentEntryId);
+                }
+            });
         }
+    }
+
+    /**
+     * Call AJAX to set No Trips flag and redirect to Residences
+     */
+    function setNoTripsAndRedirect(anumber, parentEntryId) {
+        $.ajax({
+            url: window.nmeAjax.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'set_no_trips',
+                anumber: anumber,
+                parent_entry_id: parentEntryId,
+                nonce: window.nmeAjax.nonce
+            },
+            success: function(response) {
+                console.log('TOC Skip: Set No Trips response', response);
+
+                if (response.success && response.data.redirect_url) {
+                    window.location.href = response.data.redirect_url;
+                } else {
+                    console.error('TOC Skip: Failed to set No Trips', response);
+                    alert('An error occurred. Please try again.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('TOC Skip: AJAX error setting No Trips', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
     }
 
     /**
@@ -150,6 +212,76 @@
     }
 
     /**
+     * Inject "No Trips Taken" button on dashboard when no entries exist
+     */
+    function injectNoTripsButtonOnDashboard() {
+        // Check if we're on the dashboard page
+        if (window.location.pathname.indexOf('time-outside-the-us-view') === -1) {
+            return;
+        }
+
+        // Count visible TOC entry rows
+        var entryRows = $('.gv-table-view tbody tr').filter(function() {
+            return $(this).find('.toc-index').length > 0;
+        });
+
+        console.log('TOC Skip: Dashboard has ' + entryRows.length + ' entry rows');
+
+        // Only show No Trips button if no entries exist
+        if (entryRows.length > 0) {
+            return;
+        }
+
+        // Check if button already exists
+        if ($('#no-trips-dashboard-button').length) {
+            return;
+        }
+
+        // Get anumber and parent_entry_id from data attributes or nmeData
+        var anumber = '';
+        var parentEntryId = '';
+
+        if (typeof window.nmeData !== 'undefined') {
+            anumber = window.nmeData.anumber || '';
+            parentEntryId = window.nmeData.parentEntryId || '';
+        }
+
+        if (!anumber || !parentEntryId) {
+            console.log('TOC Skip: Missing anumber or parentEntryId for dashboard button');
+            return;
+        }
+
+        // Find a good place to inject the button (near the Add button)
+        var addButton = $('#toc-add');
+        if (!addButton.length) {
+            console.log('TOC Skip: Could not find Add button on dashboard');
+            return;
+        }
+
+        // Create No Trips button
+        var noTripsButton = $('<a/>', {
+            href: '#',
+            id: 'no-trips-dashboard-button',
+            'class': 'gvx-nav-btn gform_button button',
+            text: 'No Trips Taken',
+            css: {
+                'margin-left': '10px'
+            }
+        });
+
+        // Inject button after the Add button
+        addButton.after(noTripsButton);
+
+        console.log('TOC Skip: No Trips button injected on dashboard');
+
+        // Handle click
+        noTripsButton.on('click', function(e) {
+            e.preventDefault();
+            handleNoTripsClick(anumber, parentEntryId);
+        });
+    }
+
+    /**
      * Handle redirect when all TOC entries are deleted
      * Monitors the dashboard for successful deletions
      */
@@ -169,7 +301,7 @@
     }
 
     /**
-     * Check if TOC entries exist, redirect to add form if none exist
+     * Check if TOC entries exist, show No Trips button if none exist
      */
     function checkAndRedirectIfEmpty() {
         // Count visible TOC entry rows
@@ -180,30 +312,8 @@
         console.log('TOC Skip: Found ' + entryRows.length + ' entry rows');
 
         if (entryRows.length === 0) {
-            console.log('TOC Skip: No entries found, redirecting to add form');
-
-            // Get URL from button with data-nme-nav="time-outside"
-            var tocButton = $('[data-nme-nav="time-outside"]');
-
-            if (tocButton.length && tocButton.attr('href') && tocButton.attr('href') !== '#') {
-                var redirectUrl = tocButton.attr('href');
-                console.log('TOC Skip: Redirecting to:', redirectUrl);
-                window.location.href = redirectUrl;
-            } else {
-                // Fallback: construct URL manually
-                var anumber = $('[data-nme-nav="time-outside"]').data('anumber') ||
-                    $('.gv-table-view').data('anumber') ||
-                    '';
-                var parentEntryId = $('[data-nme-nav="time-outside"]').data('parent-entry-id') ||
-                    $('.gv-table-view').data('parent-entry-id') ||
-                    '';
-
-                if (anumber && parentEntryId) {
-                    var redirectUrl = '/application/time-outside-the-us/?sequence=1&anumber=' + anumber + '&parent_entry_id=' + parentEntryId;
-                    console.log('TOC Skip: Redirecting to (fallback):', redirectUrl);
-                    window.location.href = redirectUrl;
-                }
-            }
+            console.log('TOC Skip: No entries found, injecting No Trips button');
+            injectNoTripsButtonOnDashboard();
         }
     }
 
@@ -222,9 +332,10 @@
     $(document).ready(function() {
         injectSkipButton();
 
-        // Set up deletion redirect handler on dashboard page (706)
+        // Set up for dashboard page (706)
         if (window.location.pathname.indexOf('time-outside-the-us-view') !== -1) {
             setupDeletionRedirect();
+            injectNoTripsButtonOnDashboard();
         }
     });
 

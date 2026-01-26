@@ -4,7 +4,6 @@
  * Handles:
  * - Add button URL updates (sequence, init-date, anumber, parent_entry_id)
  * - Adjacent trip date storage for edit pages
- * - Custom confirm dialogs
  * - Deletion handling with cascade delete support
  *
  * @package NME\Topics\TimeOutside
@@ -80,11 +79,57 @@
         updateTOCLink();
 
         // ================================================================
+        // Store Preceding Trip Details for Add Page
+        // ================================================================
+
+        /**
+         * Store the last trip's details in localStorage for display on add page
+         */
+        function storePrecedingTripForAdd() {
+            var body = document.querySelector('.gv-table-view tbody');
+            var rows = body ? body.querySelectorAll('tr') : [];
+
+            var precedingTripDeparture = '';
+            var precedingTripReturn = '';
+            var precedingTripDestination = '';
+
+            if (rows.length > 0) {
+                var last = rows[rows.length - 1];
+                
+                var depEl = last.querySelector('.toc-dod');
+                var retEl = last.querySelector('.toc-dor');
+                var destEl = last.querySelector('.toc-dest');
+
+                if (depEl) precedingTripDeparture = depEl.textContent.trim();
+                if (retEl) precedingTripReturn = retEl.textContent.trim();
+                if (destEl) precedingTripDestination = destEl.textContent.trim();
+            }
+
+            localStorage.setItem('precedingTripDeparture', precedingTripDeparture);
+            localStorage.setItem('precedingTripReturn', precedingTripReturn);
+            localStorage.setItem('precedingTripDestination', precedingTripDestination);
+
+            console.log('NME TOC Dashboard: Stored preceding trip for add page', {
+                departure: precedingTripDeparture,
+                return: precedingTripReturn,
+                destination: precedingTripDestination
+            });
+        }
+
+        // Store preceding trip when clicking Add button
+        var addBtn = document.getElementById('toc-add');
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                storePrecedingTripForAdd();
+            });
+        }
+
+        // ================================================================
         // Adjacent Trip Date Storage for Edit Pages
         // ================================================================
 
         /**
-         * Store adjacent trip dates in localStorage when clicking edit links
+         * Store adjacent trip dates and preceding trip details in localStorage when clicking edit links
          */
         function setupEditStorage() {
             var editLinks = document.querySelectorAll('.gv-field-42-edit_link a, .gv-field-42-custom a');
@@ -105,10 +150,24 @@
                     }
 
                     var previousTripDeparture = '';
+                    var precedingTripDeparture = '';
+                    var precedingTripReturn = '';
+                    var precedingTripDestination = '';
+
                     if (prevRow) {
                         var departureEl = prevRow.querySelector('.toc-dod');
+                        var returnEl = prevRow.querySelector('.toc-dor');
+                        var destEl = prevRow.querySelector('.toc-dest');
+
                         if (departureEl) {
                             previousTripDeparture = departureEl.textContent.trim();
+                            precedingTripDeparture = previousTripDeparture;
+                        }
+                        if (returnEl) {
+                            precedingTripReturn = returnEl.textContent.trim();
+                        }
+                        if (destEl) {
+                            precedingTripDestination = destEl.textContent.trim();
                         }
                     }
 
@@ -130,87 +189,30 @@
                         }
                     }
 
+                    // Store boundary dates for validation
                     localStorage.setItem('previousTripDeparture', previousTripDeparture);
                     localStorage.setItem('nextTripReturn', nextTripReturn);
+
+                    // Store preceding trip details for display
+                    localStorage.setItem('precedingTripDeparture', precedingTripDeparture);
+                    localStorage.setItem('precedingTripReturn', precedingTripReturn);
+                    localStorage.setItem('precedingTripDestination', precedingTripDestination);
 
                     console.log('NME TOC Dashboard: Stored adjacent trip dates', {
                         previousTripDeparture: previousTripDeparture,
                         nextTripReturn: nextTripReturn
+                    });
+
+                    console.log('NME TOC Dashboard: Stored preceding trip for edit page', {
+                        departure: precedingTripDeparture,
+                        return: precedingTripReturn,
+                        destination: precedingTripDestination
                     });
                 });
             });
         }
 
         setupEditStorage();
-
-        // ================================================================
-        // Custom Confirm Dialog
-        // ================================================================
-
-        /**
-         * Show custom confirm dialog
-         * @param {string} message
-         * @return {Promise<boolean>}
-         */
-        function customConfirm(message) {
-            return new Promise(function(resolve) {
-                var container = document.body;
-
-                var confirmBox = document.createElement('div');
-                confirmBox.style.position = 'fixed';
-                confirmBox.style.top = '50%';
-                confirmBox.style.left = '50%';
-                confirmBox.style.transform = 'translate(-50%, -50%)';
-                confirmBox.style.padding = '20px';
-                confirmBox.style.borderRadius = '8px';
-                confirmBox.style.backgroundColor = '#f44336';
-                confirmBox.style.color = '#fff';
-                confirmBox.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
-                confirmBox.style.zIndex = '10001';
-                confirmBox.style.pointerEvents = 'auto';
-                confirmBox.style.maxWidth = '80%';
-                confirmBox.style.textAlign = 'center';
-
-                var messageEl = document.createElement('div');
-                messageEl.style.marginBottom = '15px';
-                messageEl.textContent = message;
-                confirmBox.appendChild(messageEl);
-
-                var btnContainer = document.createElement('div');
-
-                var okBtn = document.createElement('button');
-                okBtn.textContent = 'OK';
-                okBtn.style.padding = '5px 10px';
-                okBtn.style.marginRight = '10px';
-                okBtn.style.border = 'none';
-                okBtn.style.borderRadius = '3px';
-                okBtn.style.cursor = 'pointer';
-                okBtn.style.backgroundColor = '#fff';
-                okBtn.style.color = '#f44336';
-                okBtn.addEventListener('click', function() {
-                    confirmBox.remove();
-                    resolve(true);
-                });
-                btnContainer.appendChild(okBtn);
-
-                var cancelBtn = document.createElement('button');
-                cancelBtn.textContent = 'Cancel';
-                cancelBtn.style.padding = '5px 10px';
-                cancelBtn.style.border = 'none';
-                cancelBtn.style.borderRadius = '3px';
-                cancelBtn.style.cursor = 'pointer';
-                cancelBtn.style.backgroundColor = '#fff';
-                cancelBtn.style.color = '#f44336';
-                cancelBtn.addEventListener('click', function() {
-                    confirmBox.remove();
-                    resolve(false);
-                });
-                btnContainer.appendChild(cancelBtn);
-
-                confirmBox.appendChild(btnContainer);
-                container.appendChild(confirmBox);
-            });
-        }
 
         // ================================================================
         // Deletion Handler
@@ -244,87 +246,89 @@
 
             var isLastEntry = (currentRowIndex === validRowCount);
 
-            // Custom message based on position
-            var customMessage;
-            if (!isLastEntry) {
-                customMessage = 'Your deletion of this trip will require you to re-enter any previous trips, if any. Do you wish to continue?';
-            } else {
-                customMessage = 'Are you sure you want to delete this entry? This cannot be undone.';
-            }
+            // Use appropriate confirm dialog based on position
+            var confirmFunction = isLastEntry 
+                ? window.NMEApp.TOCAlerts.showSingleDeleteConfirm 
+                : window.NMEApp.TOCAlerts.showCascadeDeleteConfirm;
 
-            customConfirm(customMessage).then(function(result) {
-                if (!result) return;
+            confirmFunction(
+                // onConfirm
+                function() {
+                    console.log('NME TOC Dashboard: User confirmed deletion');
 
-                console.log('NME TOC Dashboard: User confirmed deletion');
+                    // Show spinner overlay
+                    var spinnerOverlay = document.createElement('div');
+                    spinnerOverlay.id = 'spinner-overlay';
+                    spinnerOverlay.style.position = 'fixed';
+                    spinnerOverlay.style.top = '0';
+                    spinnerOverlay.style.left = '0';
+                    spinnerOverlay.style.width = '100%';
+                    spinnerOverlay.style.height = '100%';
+                    spinnerOverlay.style.background = 'rgba(255, 255, 255, 0.8)';
+                    spinnerOverlay.style.display = 'flex';
+                    spinnerOverlay.style.justifyContent = 'center';
+                    spinnerOverlay.style.alignItems = 'center';
+                    spinnerOverlay.style.zIndex = '10002';
+                    spinnerOverlay.innerHTML = '<div class="spinner"></div>';
+                    document.body.appendChild(spinnerOverlay);
 
-                // Show spinner overlay
-                var spinnerOverlay = document.createElement('div');
-                spinnerOverlay.id = 'spinner-overlay';
-                spinnerOverlay.style.position = 'fixed';
-                spinnerOverlay.style.top = '0';
-                spinnerOverlay.style.left = '0';
-                spinnerOverlay.style.width = '100%';
-                spinnerOverlay.style.height = '100%';
-                spinnerOverlay.style.background = 'rgba(255, 255, 255, 0.8)';
-                spinnerOverlay.style.display = 'flex';
-                spinnerOverlay.style.justifyContent = 'center';
-                spinnerOverlay.style.alignItems = 'center';
-                spinnerOverlay.style.zIndex = '10002';
-                spinnerOverlay.innerHTML = '<div class="spinner"></div>';
-                document.body.appendChild(spinnerOverlay);
-
-                // Add spinner styles if not present
-                if (!document.getElementById('spinner-style')) {
-                    var spinnerStyle = document.createElement('style');
-                    spinnerStyle.id = 'spinner-style';
-                    spinnerStyle.innerHTML = '@keyframes spinner { to { transform: rotate(360deg); } } .spinner { width: 40px; height: 40px; border: 4px solid #ccc; border-top-color: #f44336; border-radius: 50%; animation: spinner 0.6s linear infinite; }';
-                    document.head.appendChild(spinnerStyle);
-                }
-
-                if (!isLastEntry) {
-                    // Cascade delete: delete this row and all subsequent rows
-                    var rowsToDelete = link.closest('tr').nextAll().addBack();
-                    var deleteUrls = [];
-
-                    rowsToDelete.each(function() {
-                        var delLink = $(this).find('a[href*="action=delete"][href*="gvid=581"]').first();
-                        if (delLink.length) {
-                            deleteUrls.push(delLink.attr('href'));
-                        }
-                    });
-
-                    /**
-                     * Delete entries sequentially
-                     * @param {Array} urls
-                     */
-                    function deleteNext(urls) {
-                        if (!urls.length) {
-                            spinnerOverlay.remove();
-                            window.location.reload();
-                            return;
-                        }
-
-                        var url = urls.shift();
-                        $.ajax({
-                            url: url,
-                            type: 'GET',
-                            success: function() {
-                                console.log('NME TOC Dashboard: Deleted entry using URL:', url);
-                                deleteNext(urls);
-                            },
-                            error: function() {
-                                console.log('NME TOC Dashboard: Failed to delete entry using URL:', url);
-                                deleteNext(urls);
-                            }
-                        });
+                    // Add spinner styles if not present
+                    if (!document.getElementById('spinner-style')) {
+                        var spinnerStyle = document.createElement('style');
+                        spinnerStyle.id = 'spinner-style';
+                        spinnerStyle.innerHTML = '@keyframes spinner { to { transform: rotate(360deg); } } .spinner { width: 40px; height: 40px; border: 4px solid #ccc; border-top-color: #f44336; border-radius: 50%; animation: spinner 0.6s linear infinite; }';
+                        document.head.appendChild(spinnerStyle);
                     }
 
-                    deleteNext(deleteUrls);
-                } else {
-                    // Single delete
-                    window.location.href = href;
+                    if (!isLastEntry) {
+                        // Cascade delete: delete this row and all subsequent rows
+                        var rowsToDelete = link.closest('tr').nextAll().addBack();
+                        var deleteUrls = [];
+
+                        rowsToDelete.each(function() {
+                            var delLink = $(this).find('a[href*="action=delete"][href*="gvid=581"]').first();
+                            if (delLink.length) {
+                                deleteUrls.push(delLink.attr('href'));
+                            }
+                        });
+
+                        /**
+                         * Delete entries sequentially
+                         * @param {Array} urls
+                         */
+                        function deleteNext(urls) {
+                            if (!urls.length) {
+                                spinnerOverlay.remove();
+                                window.location.reload();
+                                return;
+                            }
+
+                            var url = urls.shift();
+                            $.ajax({
+                                url: url,
+                                type: 'GET',
+                                success: function() {
+                                    console.log('NME TOC Dashboard: Deleted entry using URL:', url);
+                                    deleteNext(urls);
+                                },
+                                error: function() {
+                                    console.log('NME TOC Dashboard: Failed to delete entry using URL:', url);
+                                    deleteNext(urls);
+                                }
+                            });
+                        }
+
+                        deleteNext(deleteUrls);
+                    } else {
+                        // Single delete
+                        window.location.href = href;
+                    }
+                },
+                // onCancel
+                function() {
+                    console.log('NME TOC Dashboard: User cancelled deletion');
                 }
-            });
+            );
         });
 
         console.log('NME TOC Dashboard: Deletion handlers configured');

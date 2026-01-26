@@ -107,13 +107,22 @@ class Assets {
         // Ensure jQuery is loaded
         wp_enqueue_script( 'jquery' );
 
+        // TOC Modal Alerts - depends on global modal system
+        wp_enqueue_script(
+            'toc-modal-alerts',
+            $module_url . 'assets/js/toc-modal-alerts.js',
+            [ 'jquery', 'nme-modals' ],
+            $version,
+            true
+        );
+
         // Dashboard page (706) scripts
         if ( self::is_dashboard_page() ) {
             // TOC Finish - Evaluates trips for 6+ month duration, overlaps, physical presence
             wp_enqueue_script(
                 'nme-toc-finish',
                 $module_url . 'assets/js/nme-toc-finish.js',
-                [],
+                [ 'toc-modal-alerts' ],
                 $version,
                 true
             );
@@ -122,7 +131,7 @@ class Assets {
             wp_enqueue_script(
                 'nme-toc-dashboard',
                 $module_url . 'assets/js/nme-toc-dashboard.js',
-                [ 'jquery' ],
+                [ 'jquery', 'toc-modal-alerts' ],
                 $version,
                 true
             );
@@ -163,7 +172,7 @@ class Assets {
         wp_enqueue_script(
             'nme-toc-validation',
             $module_url . 'assets/js/nme-toc-validation.js',
-            [ 'jquery' ],
+            [ 'jquery', 'toc-modal-alerts' ],
             $version,
             true
         );

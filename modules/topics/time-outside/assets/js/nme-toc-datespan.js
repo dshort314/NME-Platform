@@ -61,6 +61,10 @@
 
         console.log('NME TOC DateSpan: Lookback start date:', formattedStartDate, 'Application/Filing date:', formattedApplicationDate);
 
+        // Expose lookback start date to window for validation scripts
+        window.tocLookbackStartDate = startDate;
+        window.tocLookbackStartDateFormatted = formattedStartDate;
+
         // Update the dateSpan element with the message
         var msg = 'Please list all time outside the United States from ' + formattedStartDate + ' until today. Start with your most recent trip and work backwards. Do not include day trips (where the entire trip was completed within 24 hours).';
 

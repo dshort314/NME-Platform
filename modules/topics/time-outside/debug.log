@@ -1,0 +1,2 @@
+[26-Jan-2026 00:46:26 UTC] PHP Warning:  Trying to access array offset on value of type null in /home/customer/www/naturalization199.com/public_html/wp-content/plugins/gravityview/includes/class-gravityview-entry-approval.php on line 299
+[26-Jan-2026 00:46:26 UTC] PHP Warning:  Trying to access array offset on value of type null in /home/customer/www/naturalization199.com/public_html/wp-content/plugins/gravity-forms-encrypted-fields/gfef.php on line 2245

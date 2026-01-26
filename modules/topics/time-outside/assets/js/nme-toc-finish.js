@@ -79,49 +79,6 @@
             return parts.join(', ') || '0 days';
         }
 
-        /**
-         * Display modal alert
-         * @param {string} html - HTML content
-         * @param {boolean} isError - Red if true, green if false
-         */
-        function modal(html, isError) {
-            const w = document.body;
-            const b = document.createElement('div');
-            b.style.position = 'fixed';
-            b.style.inset = '0';
-            b.style.display = 'flex';
-            b.style.alignItems = 'center';
-            b.style.justifyContent = 'center';
-            b.style.zIndex = '10000';
-            b.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
-
-            const i = document.createElement('div');
-            i.style.maxWidth = '720px';
-            i.style.padding = '20px';
-            i.style.borderRadius = '8px';
-            i.style.background = isError ? '#f44336' : '#2e7d32';
-            i.style.color = '#fff';
-            i.style.boxShadow = '0 10px 30px rgba(0,0,0,.3)';
-            i.innerHTML = '<div style="margin-bottom:12px;line-height:1.4;">' + html + '</div>';
-
-            const ok = document.createElement('button');
-            ok.textContent = 'OK';
-            ok.style.background = '#fff';
-            ok.style.color = isError ? '#f44336' : '#2e7d32';
-            ok.style.border = '0';
-            ok.style.borderRadius = '4px';
-            ok.style.padding = '6px 12px';
-            ok.style.cursor = 'pointer';
-            ok.style.fontWeight = 'bold';
-            ok.addEventListener('click', function() {
-                w.removeChild(b);
-            });
-
-            i.appendChild(ok);
-            b.appendChild(i);
-            w.appendChild(b);
-        }
-
         // ================================================================
         // Trip Collection
         // ================================================================
@@ -139,11 +96,13 @@
                 const depEl = tr.querySelector('.toc-dod');
                 const retEl = tr.querySelector('.toc-dor');
                 const idxEl = tr.querySelector('.toc-index');
+                const destEl = tr.querySelector('.toc-dest');
 
                 console.log('NME TOC Finish: Row elements', {
                     depEl: depEl ? depEl.textContent.trim() : 'not found',
                     retEl: retEl ? retEl.textContent.trim() : 'not found',
-                    idxEl: idxEl ? idxEl.textContent.trim() : 'not found'
+                    idxEl: idxEl ? idxEl.textContent.trim() : 'not found',
+                    destEl: destEl ? destEl.textContent.trim() : 'not found'
                 });
 
                 if (!depEl || !retEl || !idxEl) return;
@@ -155,7 +114,10 @@
                 trips.push({
                     i: parseInt(idxEl.textContent.trim(), 10) || 0,
                     from: dep,
-                    to: ret
+                    to: ret,
+                    destination: destEl ? destEl.textContent.trim() : 'Unknown',
+                    fromFormatted: depEl.textContent.trim(),
+                    toFormatted: retEl.textContent.trim()
                 });
             });
 
@@ -205,14 +167,14 @@
 
                 // 183 days = approximately 6 months
                 if (len >= 183) {
-                    longTrips.push(t.i);
+                    longTrips.push(t);
                 }
 
                 // Check for overlaps with subsequent trips
                 for (var y = x + 1; y < trips.length; y++) {
                     var u = trips[y];
                     if (t.from <= u.to && t.to >= u.from) {
-                        overlaps.push({ a: t.i, b: u.i });
+                        overlaps.push({ a: t, b: u });
                     }
                 }
             }
@@ -247,15 +209,19 @@
             // Check for trips exceeding 6 months
             if (longTrips.length) {
                 hasIssues = true;
-                msg += '<p><strong>Warning:</strong> The following trips exceed 6 months: Row ' + longTrips.join(', Row ') + '</p>';
+                
+                // Build list of long trips with details
+                var tripDetails = longTrips.map(function(t) {
+                    return 'trip to ' + t.destination + ' from ' + t.fromFormatted + ' to ' + t.toFormatted;
+                });
+                
+                msg += '<p><strong>Warning:</strong> The following trips exceed 6 months: ' + tripDetails.join('; ') + '</p>';
 
                 // Find the most recent trip that exceeds 6 months
                 var mostRecentLongTrip = null;
-                for (var i = 0; i < trips.length; i++) {
-                    if (longTrips.indexOf(trips[i].i) !== -1) {
-                        if (!mostRecentLongTrip || trips[i].to > mostRecentLongTrip.to) {
-                            mostRecentLongTrip = trips[i];
-                        }
+                for (var i = 0; i < longTrips.length; i++) {
+                    if (!mostRecentLongTrip || longTrips[i].to > mostRecentLongTrip.to) {
+                        mostRecentLongTrip = longTrips[i];
                     }
                 }
 
@@ -280,7 +246,7 @@
                 hasIssues = true;
                 msg += '<p><strong>Warning:</strong> Overlapping trips detected:</p><ul>';
                 overlaps.forEach(function(p) {
-                    msg += '<li>Row ' + p.a + ' overlaps with Row ' + p.b + '</li>';
+                    msg += '<li>Trip to ' + p.a.destination + ' (' + p.a.fromFormatted + ' - ' + p.a.toFormatted + ') overlaps with trip to ' + p.b.destination + ' (' + p.b.fromFormatted + ' - ' + p.b.toFormatted + ')</li>';
                 });
                 msg += '</ul>';
             }
@@ -303,14 +269,66 @@
                 overlaps: overlaps
             });
 
-            // Display result
+            // Display result using NMEModal via TOCAlerts
             if (hasIssues) {
-                modal(msg, true);
+                window.NMEApp.TOCAlerts.showEvaluationError(msg, function() {
+                    redirectToResidences();
+                });
                 return false;
             }
 
-            modal('<p>You may proceed with your application.</p>', false);
+            var successMsg = '<p>The trips you have taken outside the United States do not adversely impact the timing of your application. You may continue preparing your application.</p>';
+            window.NMEApp.TOCAlerts.showEvaluationSuccess(successMsg, function() {
+                redirectToResidences();
+            });
             return true;
+        }
+
+        /**
+         * Redirect to Residences page via AJAX
+         */
+        function redirectToResidences() {
+            // Get anumber and parent_entry_id from nmeData
+            var anumber = '';
+            var parentEntryId = '';
+
+            if (typeof window.nmeData !== 'undefined') {
+                anumber = window.nmeData.anumber || '';
+                parentEntryId = window.nmeData.parentEntryId || '';
+            }
+
+            if (!anumber || !parentEntryId) {
+                console.error('NME TOC Finish: Missing anumber or parentEntryId for redirect');
+                return;
+            }
+
+            // Call AJAX to get redirect URL
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', window.nmeAjax.ajaxurl, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response.success && response.data.redirect_url) {
+                                window.location.href = response.data.redirect_url;
+                            } else {
+                                console.error('NME TOC Finish: Failed to get redirect URL', response);
+                            }
+                        } catch (e) {
+                            console.error('NME TOC Finish: Error parsing response', e);
+                        }
+                    } else {
+                        console.error('NME TOC Finish: AJAX error', xhr.status);
+                    }
+                }
+            };
+
+            var params = 'action=get_residences_redirect&anumber=' + encodeURIComponent(anumber) +
+                '&parent_entry_id=' + encodeURIComponent(parentEntryId) +
+                '&nonce=' + encodeURIComponent(window.nmeAjax.nonce);
+            xhr.send(params);
         }
 
         // ================================================================

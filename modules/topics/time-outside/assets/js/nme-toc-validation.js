@@ -90,7 +90,7 @@
         // Only check if both dates are valid
         if (departureDate && returnDate) {
             if (window.NMEApp.TOCValidation.isMoreThanSixMonths(departureDate, returnDate)) {
-                window.alert('You have entered a trip greater than 6 months; confirm your entries are correct by selecting "ok" or edit the entries now. Be advised that when you click "Finish" on the dashboard, the system will provide you the correct date on or after which you will be permitted to file.');
+                window.NMEApp.TOCAlerts.showSixMonthWarning();
             }
         }
     };
@@ -120,15 +120,17 @@
 
             // Check departure date
             if (departureDate && departureDate > boundaryDate) {
-                window.alert('Departure date cannot be later than ' + formattedBoundary + '. You must enter your trips from latest to earliest. Revise the date or delete the previous trip in order to enter this trip prior to the one entered above.');
-                $('#input_42_5').val('');
+                window.NMEApp.TOCAlerts.showDepartureTooLate(formattedBoundary, function() {
+                    $('#input_42_5').val('');
+                });
                 return;
             }
 
             // Check return date
             if (returnDate && returnDate > boundaryDate) {
-                window.alert('Return date cannot be later than ' + formattedBoundary + '. You must enter your trips from latest to earliest. Revise the date or delete the previous trip in order to enter this trip prior to the one entered above.');
-                $('#input_42_6').val('');
+                window.NMEApp.TOCAlerts.showReturnTooLate(formattedBoundary, function() {
+                    $('#input_42_6').val('');
+                });
                 return;
             }
         }
@@ -163,14 +165,16 @@
             var formattedPrevBoundary = window.NMEApp.TOCValidation.formatDate(prevBoundaryDate);
 
             if (departureDate > prevBoundaryDate) {
-                window.alert('Departure date cannot be later than ' + formattedPrevBoundary + '. You must enter your trips from latest to earliest. Revise the date or delete the previous trip in order to enter this trip prior to the one entered above.');
-                $('#input_42_5').val('');
+                window.NMEApp.TOCAlerts.showDepartureTooLate(formattedPrevBoundary, function() {
+                    $('#input_42_5').val('');
+                });
                 return;
             }
 
             if (returnDate > prevBoundaryDate) {
-                window.alert('Return date cannot be later than ' + formattedPrevBoundary + '. You must enter your trips from latest to earliest. Revise the date or delete the previous trip in order to enter this trip prior to the one entered above.');
-                $('#input_42_6').val('');
+                window.NMEApp.TOCAlerts.showReturnTooLate(formattedPrevBoundary, function() {
+                    $('#input_42_6').val('');
+                });
                 return;
             }
         }
@@ -183,17 +187,158 @@
             var formattedNextBoundary = window.NMEApp.TOCValidation.formatDate(nextBoundaryDate);
 
             if (departureDate < nextBoundaryDate) {
-                window.alert('Departure date cannot be earlier than ' + formattedNextBoundary + '. You must enter your trips from latest to earliest. Revise the date or delete the previous trip in order to enter this trip prior to the one entered above.');
-                $('#input_42_5').val('');
+                window.NMEApp.TOCAlerts.showDepartureTooEarly(formattedNextBoundary, function() {
+                    $('#input_42_5').val('');
+                });
                 return;
             }
 
             if (returnDate < nextBoundaryDate) {
-                window.alert('Return date cannot be earlier than ' + formattedNextBoundary + '. You must enter your trips from latest to earliest. Revise the date or delete the previous trip in order to enter this trip prior to the one entered above.');
-                $('#input_42_6').val('');
+                window.NMEApp.TOCAlerts.showReturnTooEarly(formattedNextBoundary, function() {
+                    $('#input_42_6').val('');
+                });
                 return;
             }
         }
+    };
+
+    // ================================================================
+    // Preceding Trip Display
+    // ================================================================
+
+    /**
+     * Display preceding trip details below the dateSpan element
+     */
+    window.NMEApp.TOCValidation.displayPrecedingTrip = function() {
+        if (typeof $ === 'undefined') return;
+
+        var departure = localStorage.getItem('precedingTripDeparture');
+        var returnDate = localStorage.getItem('precedingTripReturn');
+        var destination = localStorage.getItem('precedingTripDestination');
+
+        // Only display if there's preceding trip data
+        if (!departure && !returnDate && !destination) {
+            console.log('NME TOC Validation: No preceding trip data to display');
+            return;
+        }
+
+        // Check if display already exists
+        if ($('#preceding-trip-info').length) {
+            return;
+        }
+
+        // Build the display HTML
+        var html = '<div id="preceding-trip-info" style="' +
+            'display: block; ' +
+            'padding: 15px; ' +
+            'margin: 15px 0; ' +
+            'background-color: #f0f4ff; ' +
+            'border-left: 4px solid #0073aa; ' +
+            'border-radius: 4px; ' +
+            'font-size: 14px; ' +
+            'line-height: 1.5; ' +
+            'color: #333;' +
+            '">' +
+            '<strong>Previous Trip:</strong><br>';
+
+        if (departure) {
+            html += 'Departure: ' + departure + '<br>';
+        }
+        if (returnDate) {
+            html += 'Return: ' + returnDate + '<br>';
+        }
+        if (destination) {
+            html += 'Destination: ' + destination;
+        }
+
+        html += '</div>';
+
+        // Insert after dateSpan
+        var dateSpan = $('#dateSpan');
+        if (dateSpan.length) {
+            dateSpan.after(html);
+            console.log('NME TOC Validation: Displayed preceding trip info');
+        } else {
+            // Fallback: prepend to form
+            var form = $('#gform_42, .gv-edit-entry-wrapper');
+            if (form.length) {
+                form.prepend(html);
+                console.log('NME TOC Validation: Displayed preceding trip info (fallback location)');
+            }
+        }
+    };
+
+    // ================================================================
+    // Lookback Period Validation (Form Submit)
+    // ================================================================
+
+    /**
+     * Check if return date is before the lookback start date
+     * If so, trip should not be entered - redirect to dashboard
+     * @return {boolean} - True if valid (return date is on or after lookback), false if invalid
+     */
+    window.NMEApp.TOCValidation.checkReturnDateWithinLookback = function() {
+        if (typeof $ === 'undefined') return true;
+
+        var returnDate = window.NMEApp.TOCValidation.parseDate($('#input_42_6').val());
+        var lookbackDate = window.tocLookbackStartDate;
+
+        // If no lookback date set, allow submission
+        if (!lookbackDate || !(lookbackDate instanceof Date) || isNaN(lookbackDate.getTime())) {
+            console.log('NME TOC Validation: No lookback date available, skipping check');
+            return true;
+        }
+
+        // If no return date entered, allow form validation to handle it
+        if (!returnDate) {
+            return true;
+        }
+
+        // Compare: return date must be on or after lookback start date
+        // Normalize both dates to start of day for comparison
+        var returnDateNorm = new Date(returnDate.getFullYear(), returnDate.getMonth(), returnDate.getDate());
+        var lookbackDateNorm = new Date(lookbackDate.getFullYear(), lookbackDate.getMonth(), lookbackDate.getDate());
+
+        if (returnDateNorm < lookbackDateNorm) {
+            var formattedLookback = window.tocLookbackStartDateFormatted || window.NMEApp.TOCValidation.formatDate(lookbackDate);
+            
+            window.NMEApp.TOCAlerts.showTripBeforeLookbackDate(formattedLookback, function() {
+                // Redirect to dashboard on modal close
+                window.location.href = '/application/time-outside-the-us-view/';
+            });
+            
+            return false;
+        }
+
+        return true;
+    };
+
+    /**
+     * Setup form submit validation
+     * Intercepts Gravity Forms submit to check lookback date
+     */
+    window.NMEApp.TOCValidation.setupFormSubmitValidation = function() {
+        if (typeof $ === 'undefined') return;
+
+        // Hook into Gravity Forms submit
+        $(document).on('submit', '#gform_42', function(e) {
+            if (!window.NMEApp.TOCValidation.checkReturnDateWithinLookback()) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+
+        // Also hook into GravityView edit form submit (same form ID)
+        $(document).on('click', '.gv-button-update', function(e) {
+            if (!window.NMEApp.TOCValidation.checkReturnDateWithinLookback()) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+
+        console.log('NME TOC Validation: Form submit validation configured');
     };
 
     // ================================================================
@@ -261,6 +406,14 @@
 
         if (isEditPage) {
             window.NMEApp.TOCValidation.initEditPageValidation();
+        }
+
+        // Setup form submit validation for both add and edit pages
+        if (isAddPage || isEditPage) {
+            window.NMEApp.TOCValidation.setupFormSubmitValidation();
+            
+            // Display preceding trip info
+            window.NMEApp.TOCValidation.displayPrecedingTrip();
         }
 
         // Check on page load in case dates are pre-filled
