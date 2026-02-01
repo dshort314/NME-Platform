@@ -5,6 +5,7 @@
  * - Trip duration checks (6+ month warning)
  * - Boundary date validation (for edit pages)
  * - Overlap detection with field 11 (for add pages)
+ * - Display of all previous trips in table format
  *
  * @package NME\Topics\TimeOutside
  */
@@ -203,11 +204,81 @@
     };
 
     // ================================================================
-    // Preceding Trip Display
+    // Previous Trips Table Display
     // ================================================================
 
     /**
-     * Display preceding trip details below the dateSpan element
+     * Display all previous trips in a simple multi-line list below the dateSpan element
+     * Only displays on add page (582), not on dashboard (706)
+     */
+    window.NMEApp.TOCValidation.displayPreviousTripsTable = function() {
+        if (typeof $ === 'undefined') return;
+
+        // Only display on add page, not dashboard
+        if (window.nmeTocPageType === 'dashboard') {
+            console.log('NME TOC Validation: Skipping previous trips display on dashboard');
+            return;
+        }
+
+        // Get all trips from localStorage
+        var allTripsJson = localStorage.getItem('allTocTrips');
+        var allTrips = [];
+
+        if (allTripsJson) {
+            try {
+                allTrips = JSON.parse(allTripsJson);
+            } catch (e) {
+                console.log('NME TOC Validation: Could not parse allTocTrips from localStorage');
+            }
+        }
+
+        // If no trips stored in new format, fall back to single preceding trip
+        if (!allTrips || allTrips.length === 0) {
+            var departure = localStorage.getItem('precedingTripDeparture');
+            var returnDate = localStorage.getItem('precedingTripReturn');
+            var destination = localStorage.getItem('precedingTripDestination');
+
+            if (departure || returnDate || destination) {
+                allTrips = [{
+                    departure: departure || '',
+                    return: returnDate || '',
+                    destination: destination || ''
+                }];
+            }
+        }
+
+        // Only display if there are trips
+        if (!allTrips || allTrips.length === 0) {
+            console.log('NME TOC Validation: No previous trips to display');
+            return;
+        }
+
+        // Check if display already exists
+        if ($('#previous-trips-list').length) {
+            return;
+        }
+
+        // Build multi-line list
+        var html = '<div id="previous-trips-list" style="margin: 12px 0; font-size: 13px; color: #555;">' +
+            '<strong>Previous Trips:</strong><br>';
+
+        for (var i = 0; i < allTrips.length; i++) {
+            var trip = allTrips[i];
+            html += trip.departure + ' – ' + trip.return + ' | ' + trip.destination + '<br>';
+        }
+
+        html += '</div>';
+
+        // Insert after dateSpan
+        var dateSpan = $('#dateSpan');
+        if (dateSpan.length) {
+            dateSpan.after(html);
+            console.log('NME TOC Validation: Displayed ' + allTrips.length + ' previous trips');
+        }
+    };
+
+    /**
+     * Display preceding trip details below the dateSpan element (legacy - for edit pages)
      */
     window.NMEApp.TOCValidation.displayPrecedingTrip = function() {
         if (typeof $ === 'undefined') return;
@@ -402,18 +473,19 @@
 
         if (isAddPage) {
             window.NMEApp.TOCValidation.initAddPageValidation();
+            // Display all previous trips in table format for add page
+            window.NMEApp.TOCValidation.displayPreviousTripsTable();
         }
 
         if (isEditPage) {
             window.NMEApp.TOCValidation.initEditPageValidation();
+            // Display single preceding trip for edit page (legacy format)
+            window.NMEApp.TOCValidation.displayPrecedingTrip();
         }
 
         // Setup form submit validation for both add and edit pages
         if (isAddPage || isEditPage) {
             window.NMEApp.TOCValidation.setupFormSubmitValidation();
-            
-            // Display preceding trip info
-            window.NMEApp.TOCValidation.displayPrecedingTrip();
         }
 
         // Check on page load in case dates are pre-filled

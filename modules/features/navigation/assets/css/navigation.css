@@ -29,6 +29,38 @@
     }
 }
 
+/* Lockout Notice */
+.nme-nav-lockout-notice {
+    grid-column: 1 / -1;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+}
+
+.nme-nav-lockout-notice p {
+    margin: 0 0 8px 0;
+    color: #856404;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.nme-nav-lockout-notice p:last-child {
+    margin-bottom: 0;
+}
+
+.nme-nav-lockout-notice a {
+    color: #533f03;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.nme-nav-lockout-notice a:hover {
+    color: #1d1606;
+}
+
 /* Navigation Button Base Styles */
 .nme-nav-button {
     display: flex;
@@ -188,6 +220,30 @@
     pointer-events: none;
 }
 
+/* Locked Button State */
+.nme-nav-button.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    position: relative;
+}
+
+.nme-nav-button.locked::before {
+    content: "\1F512";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 16px;
+    opacity: 0.7;
+}
+
+/* Locked button hover - prevent visual changes */
+.nme-nav-button.locked:hover {
+    transform: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, #002d5c 0%, #001a3d 100%);
+}
+
 /* Loading State */
 .nme-nav-button.loading::after {
     content: "";
@@ -249,6 +305,14 @@
     #process-application-button .nme-nav-button-title {
         font-size: 20px;
     }
+    
+    .nme-nav-lockout-notice {
+        padding: 12px 16px;
+    }
+    
+    .nme-nav-lockout-notice p {
+        font-size: 13px;
+    }
 }
 
 /* Accessibility */
@@ -276,6 +340,10 @@
     
     .nme-nav-button-icon {
         border: 2px solid white;
+    }
+    
+    .nme-nav-lockout-notice {
+        border: 2px solid #856404;
     }
 }
 

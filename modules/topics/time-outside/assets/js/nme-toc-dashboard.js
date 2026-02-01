@@ -3,6 +3,7 @@
  * 
  * Handles:
  * - Add button URL updates (sequence, init-date, anumber, parent_entry_id)
+ * - All trips storage for table display on add page
  * - Adjacent trip date storage for edit pages
  * - Deletion handling with cascade delete support
  *
@@ -79,48 +80,64 @@
         updateTOCLink();
 
         // ================================================================
-        // Store Preceding Trip Details for Add Page
+        // Store ALL Trips for Add Page Table Display
         // ================================================================
 
         /**
-         * Store the last trip's details in localStorage for display on add page
+         * Store ALL trips in localStorage for table display on add page
          */
-        function storePrecedingTripForAdd() {
+        function storeAllTripsForAdd() {
             var body = document.querySelector('.gv-table-view tbody');
             var rows = body ? body.querySelectorAll('tr') : [];
 
+            var allTrips = [];
+
+            rows.forEach(function(row) {
+                var depEl = row.querySelector('.toc-dod');
+                var retEl = row.querySelector('.toc-dor');
+                var destEl = row.querySelector('.toc-dest');
+                var idxEl = row.querySelector('.toc-index');
+
+                // Only include rows with valid data (check for departure date as minimum)
+                if (depEl && depEl.textContent.trim()) {
+                    allTrips.push({
+                        departure: depEl.textContent.trim(),
+                        return: retEl ? retEl.textContent.trim() : '',
+                        destination: destEl ? destEl.textContent.trim() : ''
+                    });
+                }
+            });
+
+            // Store all trips as JSON
+            localStorage.setItem('allTocTrips', JSON.stringify(allTrips));
+
+            // Also store preceding trip for backward compatibility
             var precedingTripDeparture = '';
             var precedingTripReturn = '';
             var precedingTripDestination = '';
 
-            if (rows.length > 0) {
-                var last = rows[rows.length - 1];
-                
-                var depEl = last.querySelector('.toc-dod');
-                var retEl = last.querySelector('.toc-dor');
-                var destEl = last.querySelector('.toc-dest');
-
-                if (depEl) precedingTripDeparture = depEl.textContent.trim();
-                if (retEl) precedingTripReturn = retEl.textContent.trim();
-                if (destEl) precedingTripDestination = destEl.textContent.trim();
+            if (allTrips.length > 0) {
+                var last = allTrips[allTrips.length - 1];
+                precedingTripDeparture = last.departure;
+                precedingTripReturn = last.return;
+                precedingTripDestination = last.destination;
             }
 
             localStorage.setItem('precedingTripDeparture', precedingTripDeparture);
             localStorage.setItem('precedingTripReturn', precedingTripReturn);
             localStorage.setItem('precedingTripDestination', precedingTripDestination);
 
-            console.log('NME TOC Dashboard: Stored preceding trip for add page', {
-                departure: precedingTripDeparture,
-                return: precedingTripReturn,
-                destination: precedingTripDestination
-            });
+            console.log('NME TOC Dashboard: Stored ' + allTrips.length + ' trips for add page', allTrips);
         }
 
-        // Store preceding trip when clicking Add button
+        // Store all trips immediately on dashboard load
+        storeAllTripsForAdd();
+
+        // Also store when clicking Add button (backup)
         var addBtn = document.getElementById('toc-add');
         if (addBtn) {
             addBtn.addEventListener('click', function() {
-                storePrecedingTripForAdd();
+                storeAllTripsForAdd();
             });
         }
 

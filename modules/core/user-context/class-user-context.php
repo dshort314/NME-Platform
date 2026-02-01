@@ -24,6 +24,15 @@ class UserContext {
     /** @var string User meta key for date of birth */
     const META_DOB = 'dob';
 
+    /** @var string User meta key for eligibility unlock date (purgatory) */
+    const META_ELIGIBILITY_UNLOCK_DATE = 'nme_eligibility_unlock_date';
+
+    /** @var string User meta key for purgatory message */
+    const META_PURGATORY_MESSAGE = 'nme_purgatory_message';
+
+    /** @var string User meta key for controlling description */
+    const META_CONTROLLING_DESC = 'nme_controlling_desc';
+
     // =========================================================================
     // GETTERS
     // =========================================================================
@@ -135,6 +144,9 @@ class UserContext {
         $success = self::delete_meta(self::META_ANUMBER, $user_id) && $success;
         $success = self::delete_meta(self::META_PARENT_ENTRY_ID, $user_id) && $success;
         $success = self::delete_meta(self::META_DOB, $user_id) && $success;
+        $success = self::delete_meta(self::META_ELIGIBILITY_UNLOCK_DATE, $user_id) && $success;
+        $success = self::delete_meta(self::META_PURGATORY_MESSAGE, $user_id) && $success;
+        $success = self::delete_meta(self::META_CONTROLLING_DESC, $user_id) && $success;
         return $success;
     }
 

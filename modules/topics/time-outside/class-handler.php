@@ -142,9 +142,11 @@ class Handler {
         <script>
         window.parentEntryResRequired = <?php echo wp_json_encode( $res_required_value ); ?>;
         window.parentEntryApplicationDate = <?php echo wp_json_encode( $application_date ); ?>;
+        window.nmeTocPageType = <?php echo is_page( self::PAGE_DASHBOARD ) ? "'dashboard'" : "'add'"; ?>;
         console.log("NME TOC: Parent entry ID: <?php echo esc_js( $parent_entry_id ); ?>", 
                     "Res required value: <?php echo esc_js( $res_required_value ); ?>", 
-                    "Application Date: <?php echo esc_js( $application_date ); ?>");
+                    "Application Date: <?php echo esc_js( $application_date ); ?>",
+                    "Page type: <?php echo is_page( self::PAGE_DASHBOARD ) ? 'dashboard' : 'add'; ?>");
         </script>
         <?php
     }
@@ -209,10 +211,7 @@ class Handler {
         <script>
         localStorage.removeItem('previousTripDeparture');
         localStorage.removeItem('nextTripReturn');
-        localStorage.removeItem('precedingTripDeparture');
-        localStorage.removeItem('precedingTripReturn');
-        localStorage.removeItem('precedingTripDestination');
-        console.log('NME TOC: Cleared localStorage variables on dashboard load');
+        console.log('NME TOC: Cleared boundary date variables on dashboard load');
         </script>
         <?php
     }
@@ -227,7 +226,8 @@ class Handler {
         $gravityview_id = self::get_gravityview_id();
 
         $is_add_page = is_page( self::PAGE_ADD );
-        $is_edit_page = ( $gravityview_id === self::GRAVITYVIEW_EDIT_ID );
+        // Edit page is GV 581 but NOT on dashboard page 706
+        $is_edit_page = ( $gravityview_id === self::GRAVITYVIEW_EDIT_ID ) && ! is_page( self::PAGE_DASHBOARD );
 
         if ( ! $is_add_page && ! $is_edit_page ) {
             return;
@@ -254,10 +254,66 @@ class Handler {
             }
 
             // ================================================================
-            // Preceding Trip Display (fallback)
+            // Previous Trips Table Display (fallback for add page)
+            // ================================================================
+
+            function displayPreviousTripsTable() {
+                if (!isAddPage) return;
+
+                // Get all trips from localStorage
+                var allTripsJson = localStorage.getItem('allTocTrips');
+                var allTrips = [];
+
+                if (allTripsJson) {
+                    try {
+                        allTrips = JSON.parse(allTripsJson);
+                    } catch (e) {
+                        console.log('NME TOC Validation: Could not parse allTocTrips');
+                    }
+                }
+
+                // Fallback to single preceding trip
+                if (!allTrips || allTrips.length === 0) {
+                    var departure = localStorage.getItem('precedingTripDeparture');
+                    var returnDate = localStorage.getItem('precedingTripReturn');
+                    var destination = localStorage.getItem('precedingTripDestination');
+
+                    if (departure || returnDate || destination) {
+                        allTrips = [{
+                            departure: departure || '',
+                            return: returnDate || '',
+                            destination: destination || ''
+                        }];
+                    }
+                }
+
+                if (!allTrips || allTrips.length === 0) return;
+                if ($('#previous-trips-list').length) return;
+
+                // Build multi-line list
+                var html = '<div id="previous-trips-list" style="margin: 12px 0; font-size: 13px; color: #555;">' +
+                    '<strong>Previous Trips:</strong><br>';
+
+                for (var i = 0; i < allTrips.length; i++) {
+                    var trip = allTrips[i];
+                    html += trip.departure + ' – ' + trip.return + ' | ' + trip.destination + '<br>';
+                }
+
+                html += '</div>';
+
+                var dateSpan = $('#dateSpan');
+                if (dateSpan.length) {
+                    dateSpan.after(html);
+                }
+            }
+
+            // ================================================================
+            // Preceding Trip Display (fallback for edit page)
             // ================================================================
 
             function displayPrecedingTrip() {
+                if (!isEditPage) return;
+
                 var departure = localStorage.getItem('precedingTripDeparture');
                 var returnDate = localStorage.getItem('precedingTripReturn');
                 var destination = localStorage.getItem('precedingTripDestination');
@@ -311,9 +367,13 @@ class Handler {
                 }
             }
 
-            // Display preceding trip if validation module didn't already
+            // Display trips if validation module didn't already
             if (typeof window.NMEApp === 'undefined' || !window.NMEApp.TOCValidation) {
-                displayPrecedingTrip();
+                if (isAddPage) {
+                    displayPreviousTripsTable();
+                } else if (isEditPage) {
+                    displayPrecedingTrip();
+                }
             }
 
             // ================================================================
@@ -617,7 +677,7 @@ class Handler {
      * AJAX handler to check if TOC entries exist for a user
      *
      * Used by skip button injector to determine whether to show
-     * "Skip to Residences" or "Cancel" button.
+     * "Skip to Residences" or "Back" button.
      */
     public static function ajax_check_entries_exist(): void {
         // Verify nonce

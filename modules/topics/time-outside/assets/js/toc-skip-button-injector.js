@@ -3,7 +3,7 @@
  *
  * Injects navigation buttons based on entry state:
  * - "No Trips Taken" - shown if NO TOC entries exist (updates Master Form and redirects to Residences)
- * - "Cancel" - shown if TOC entries exist (returns to dashboard)
+ * - "Back" - shown if TOC entries exist (returns to dashboard)
  *
  * Also handles redirect when all TOC entries are deleted.
  *
@@ -55,8 +55,8 @@
                     // No entries exist - show "No Trips Taken" button
                     injectNoTripsButton(anumber, parentEntryId);
                 } else {
-                    // Entries exist - show "Cancel" button
-                    injectCancelButton();
+                    // Entries exist - show "Back" button
+                    injectBackButton();
                 }
             },
             error: function(xhr, status, error) {
@@ -167,24 +167,24 @@
     }
 
     /**
-     * Inject "Cancel" button (entries exist)
+     * Inject "Back" button (entries exist)
      */
-    function injectCancelButton() {
+    function injectBackButton() {
         // Check if button already exists
-        if ($('#toc-cancel-button').length) {
-            console.log('TOC Skip: Cancel button already exists');
+        if ($('#toc-back-button').length) {
+            console.log('TOC Skip: Back button already exists');
             return;
         }
 
         // Style the footer for proper alignment
         styleFormFooter();
 
-        // Create Cancel button
-        var cancelButton = $('<a/>', {
+        // Create Back button
+        var backButton = $('<a/>', {
             href: '/application/time-outside-the-us-view/',
-            id: 'toc-cancel-button',
+            id: 'toc-back-button',
             'class': 'gvx-nav-btn gform_button button',
-            text: 'Cancel',
+            text: 'Back',
             css: {
                 'margin-right': '10px',
                 'line-height': '13px'
@@ -192,9 +192,9 @@
         });
 
         // Inject before Submit button
-        $('.gform_footer #gform_submit_button_42').before(cancelButton);
+        $('.gform_footer #gform_submit_button_42').before(backButton);
 
-        console.log('TOC Skip: Cancel button injected - entries exist');
+        console.log('TOC Skip: Back button injected - entries exist');
     }
 
     /**

@@ -159,16 +159,6 @@ class Handler {
             }
         }
 
-        // Special case: Field 30 NO is disqualifying
-        if (isset($entry[30]) && strtolower(trim($entry[30])) === 'no') {
-            $negative_results[] = [
-                'field_id' => 30,
-                'question' => $field_labels[30] ?? 'Field 30',
-                'message'  => $get_message(30, false),
-                'order'    => $field_order[30] ?? 9999,
-            ];
-        }
-
         // Check CODE fields (numeric threshold)
         foreach (Config::CODE_FIELDS as $fid) {
             $value = isset($entry[$fid]) ? trim($entry[$fid]) : '';

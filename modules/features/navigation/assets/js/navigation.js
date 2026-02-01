@@ -1,6 +1,7 @@
 /**
  * NME Platform Navigation
  * Handles conditional links based on Gravity Form entries
+ * Integrates with Access Control for eligibility lockouts
  */
 jQuery(document).ready(function($) {
     
@@ -17,6 +18,7 @@ jQuery(document).ready(function($) {
         var currentUserId = nmeNavigation.userid;
         var anumber = nmeNavigation.anumber;
         var parentEntryId = nmeNavigation.parent_entry_id;
+        var isLocked = nmeNavigation.is_locked;
         
         if (!currentUserId) {
             console.log('NME Navigation: No user ID found');
@@ -26,8 +28,16 @@ jQuery(document).ready(function($) {
         console.log('NME Navigation: Setting up conditional links', {
             userId: currentUserId,
             anumber: anumber,
-            parentEntryId: parentEntryId
+            parentEntryId: parentEntryId,
+            isLocked: isLocked
         });
+        
+        // If user is locked out, disable restricted buttons
+        if (isLocked) {
+            console.log('NME Navigation: User is locked out until ' + nmeNavigation.unlock_date_formatted);
+            disableRestrictedButtons();
+            return;
+        }
         
         // First, check if Information About You entry exists - this controls all other buttons
         if (!anumber || anumber === '') {
@@ -80,6 +90,44 @@ jQuery(document).ready(function($) {
                 disableOtherButtons();
             }
         });
+    }
+    
+    /**
+     * Disable all buttons that are marked as restricted (for locked users)
+     */
+    function disableRestrictedButtons() {
+        var restrictedButtons = $('.nme-nav-button[data-restricted="true"]');
+        
+        restrictedButtons.each(function() {
+            var button = $(this);
+            button.removeAttr('href');
+            button.addClass('disabled locked');
+            button.attr('aria-disabled', 'true');
+            button.css({
+                'opacity': '0.5',
+                'cursor': 'not-allowed',
+                'pointer-events': 'none'
+            });
+            
+            // Add click handler to redirect to purgatory
+            button.on('click', function(e) {
+                e.preventDefault();
+                window.location.href = nmeNavigation.purgatory_url;
+                return false;
+            });
+        });
+        
+        // Documents button should remain active
+        var documentsButton = $('#documents-button');
+        if (documentsButton.length > 0) {
+            documentsButton.removeClass('disabled locked');
+            documentsButton.removeAttr('aria-disabled');
+            documentsButton.css({
+                'opacity': '1',
+                'cursor': 'pointer',
+                'pointer-events': 'auto'
+            });
+        }
     }
     
     /**
@@ -214,7 +262,7 @@ jQuery(document).ready(function($) {
             console.log('NME Navigation: Processing button', buttonConfig.selector);
             
             if (button.length > 0) {
-                // Skip buttons that don't have form IDs configured
+                // Skip buttons that do not have form IDs configured
                 if (buttonConfig.formId === 0 || buttonConfig.fieldId === 0) {
                     console.log('NME Navigation: Skipping button (no form ID)', buttonConfig.selector);
                     var href = addQueryParams(buttonConfig.basePath, anumber, parentEntryId);

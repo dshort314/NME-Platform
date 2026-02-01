@@ -65,12 +65,17 @@
         window.tocLookbackStartDate = startDate;
         window.tocLookbackStartDateFormatted = formattedStartDate;
 
-        // Update the dateSpan element with the message
-        var msg = 'Please list all time outside the United States from ' + formattedStartDate + ' until today. Start with your most recent trip and work backwards. Do not include day trips (where the entire trip was completed within 24 hours).';
+        // Build the message - edit/delete instruction only on dashboard (page 706)
+        var msg = 'Please list all time outside the United States from ' + formattedStartDate + ' until today. Do not include trips that lasted less than 24 hours.<br><br>It is very important to <strong>Start With Entering Your MOST RECENT TRIPS FIRST and Work Backwards in Time.</strong>';
+
+        // Add edit/delete instruction only on dashboard page
+        if (window.nmeTocPageType === 'dashboard') {
+            msg += ' If you make a mistake, you can select either the "Edit" button or "Delete" Button to assist with re-ordering the time sequence of the trips.';
+        }
 
         var span = document.getElementById('dateSpan');
         if (span) {
-            span.textContent = msg;
+            span.innerHTML = msg;
         }
     });
 

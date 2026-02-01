@@ -70,11 +70,14 @@
             confirmText: 'Continue',
             cancelText: 'Back',
             onCancel: function() {
-                // Set input_12 to "No"
-                var input12No = document.querySelector('input[name="input_12"][value="No"]');
-                if (input12No) {
-                    input12No.checked = true;
-                    input12No.dispatchEvent(new Event('change', { bubbles: true }));
+                // Clear input_12 selection - do not auto-select any value
+                var input12Radios = document.querySelectorAll('input[name="input_12"]');
+                input12Radios.forEach(function(radio) {
+                    radio.checked = false;
+                });
+                // Trigger change event to update any dependent logic
+                if (input12Radios.length > 0) {
+                    input12Radios[0].dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
         });
@@ -85,20 +88,10 @@
      * @param {Date} lprcDate - The LPRC date (already calculated as LPR + 5 years - 90 days)
      */
     window.NMEApp.ModalAlerts.showResidencyRequirementAlert = function(lprcDate) {
-        var dateStr = lprcDate.toLocaleDateString('en-US', {
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric'
-        });
-
         var message = ''
-            + '<p><strong>USCIS Requirement:</strong> You must live in marital union with your U.S. citizen spouse for the 3 years immediately preceding your filing date in order to file early.</p>'
-            + '<p>If you need to revise your answer, you may do so now. If you are residing separately from your spouse, you have two options:</p>'
-            + '<ol>'
-            + '<li><strong>Exception Consultation:</strong> If you still wish to file early based upon your marriage to your U.S. citizen spouse, you may revert to an ELIGIBILITY ASSESSMENT and provide the information to an immigration attorney to discuss applying for the exception to the residential requirement; or</li>'
-            + '<li><strong>Standard Timeline:</strong> You may elect to wait until your filing date of <strong>' + dateStr + '</strong>, which is 4 years and 9 months from the date you became a legal permanent resident. You will receive a notice from us six (6) months prior to the date on which you are eligible to file in order to resume your application.</li>'
-            + '</ol>'
-            + '<p><strong>Please confirm your answer by selecting "Continue". If not, please select "Back" and change your answer to "Yes."</strong></p>';
+            + '<p><strong>USCIS Requirement:</strong> You must live in marital union with your U.S. citizen spouse for the 3 years immediately preceding your filing date in order to file early as the spouse of a U.S. citizen.</p>'
+            + '<p>Note that "marital union" requires "residing together", plainly understood. For example, if there is a separation in which one of you leaves the marital residence for any length of time, it would be considered to be breaking the three year time period for residing together in marital union. There are exceptions in relation to required travel and relocation for employment. Covering these exceptions, and others, to the "marital union" rule are not covered by Naturalization Made Easy and, therefore, your application will be changed to an Eligibility Assessment for you to discuss this and any other exceptions which may apply to the "marital union" rule with an attorney.</p>'
+            + '<p><strong>Please confirm your answer by selecting "Continue". Otherwise, if you wish to change your answer, please select "Back".</strong></p>';
 
         NMEModal.confirm({
             title: 'Marital Union Requirement',
@@ -106,11 +99,14 @@
             confirmText: 'Continue',
             cancelText: 'Back',
             onCancel: function() {
-                // Set input_19 to "Yes"
-                var input19Yes = document.querySelector('input[name="input_19"][value="Yes"]');
-                if (input19Yes) {
-                    input19Yes.checked = true;
-                    input19Yes.dispatchEvent(new Event('change', { bubbles: true }));
+                // Clear input_19 selection - do not auto-select any value
+                var input19Radios = document.querySelectorAll('input[name="input_19"]');
+                input19Radios.forEach(function(radio) {
+                    radio.checked = false;
+                });
+                // Trigger change event to update any dependent logic
+                if (input19Radios.length > 0) {
+                    input19Radios[0].dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
         });

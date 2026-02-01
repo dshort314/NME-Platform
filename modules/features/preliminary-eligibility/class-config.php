@@ -69,7 +69,7 @@ class Config {
      */
     const COMPLEX_FIELDS = [
         7,   // VAWA track selection
-        30,  // (YES warning only, NO disqualifies)
+        30,  // (YES warning only, NO disqualifies C2)
         35,  // (YES warning only, NO disqualifies)
         54,  // (YES warning only, NO disqualifies)
     ];
@@ -85,12 +85,12 @@ class Config {
     /**
      * Fields where YES shows warning but doesn't disqualify
      */
-    const WARNING_ONLY_FIELDS = [28, 29, 30, 53];
+    const WARNING_ONLY_FIELDS = [28, 29, 53];
 
     /**
      * Fields where YES is warning-only but NO disqualifies
      */
-    const YES_ONLY_NON_DISQUALIFYING = [35, 54];
+    const YES_ONLY_NON_DISQUALIFYING = [30, 35, 54];
 
     /**
      * Per-field severity defaults (C1 or C2)
@@ -115,6 +115,7 @@ class Config {
         79 => 'C2',
         87 => 'C2',
         // NO -> C2
+        30 => 'C2',
         80 => 'C2',
         82 => 'C2',
         83 => 'C2',
@@ -123,7 +124,7 @@ class Config {
         // CODE -> C1
         21 => 'C1',
         71 => 'C1',
-        // Intentionally no default: 24, 28, 29, 30, 35, 42, 45, 54, 72
+        // Intentionally no default: 24, 28, 29, 35, 42, 45, 54, 72
     ];
 
     /**

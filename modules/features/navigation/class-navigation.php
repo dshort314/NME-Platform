@@ -4,12 +4,14 @@
  * 
  * Creates navigation buttons and handles conditional form/view display
  * with automatic query parameter management for application forms.
+ * Integrates with Access Control to disable buttons for locked users.
  */
 
 namespace NME\Features\Navigation;
 
 use NME\Core\FieldRegistry\FieldRegistry;
 use NME\Core\UserContext\UserContext;
+use NME\Core\AccessControl\AccessControl;
 use NME\Core\Plugin;
 
 defined('ABSPATH') || exit;
@@ -59,6 +61,7 @@ class Navigation {
                 'view_id'        => FieldRegistry::VIEW_IAY,
                 'has_nav_button' => true,
                 'button_id'      => 'iay-button',
+                'restricted'     => true,  // Subject to lockout
             ],
             '/application/residences/' => [
                 'form_id'        => FieldRegistry::FORM_RESIDENCES,
@@ -66,6 +69,7 @@ class Navigation {
                 'view_id'        => FieldRegistry::VIEW_RESIDENCES,
                 'has_nav_button' => true,
                 'button_id'      => 'residences-button',
+                'restricted'     => true,
             ],
             '/application/time-outside-the-us/' => [
                 'form_id'        => FieldRegistry::FORM_TIME_OUTSIDE,
@@ -73,6 +77,7 @@ class Navigation {
                 'view_id'        => FieldRegistry::VIEW_TOC_ALT,
                 'has_nav_button' => true,
                 'button_id'      => 'time-outside-button',
+                'restricted'     => true,
             ],
             '/application/marital-history/' => [
                 'form_id'        => FieldRegistry::FORM_MARITAL_HISTORY,
@@ -80,6 +85,7 @@ class Navigation {
                 'view_id'        => FieldRegistry::VIEW_MARITAL_HISTORY,
                 'has_nav_button' => true,
                 'button_id'      => 'marital-history-button',
+                'restricted'     => true,
             ],
             '/application/children/' => [
                 'form_id'        => FieldRegistry::FORM_CHILDREN,
@@ -87,6 +93,7 @@ class Navigation {
                 'view_id'        => FieldRegistry::VIEW_CHILDREN,
                 'has_nav_button' => true,
                 'button_id'      => 'children-button',
+                'restricted'     => true,
             ],
             '/application/employment-school/' => [
                 'form_id'        => FieldRegistry::FORM_EMPLOYMENT,
@@ -94,6 +101,7 @@ class Navigation {
                 'view_id'        => 0,
                 'has_nav_button' => true,
                 'button_id'      => 'employment-school-button',
+                'restricted'     => true,
             ],
             '/application/additional-information/' => [
                 'form_id'        => FieldRegistry::FORM_ADDITIONAL_INFORMATION,
@@ -101,6 +109,7 @@ class Navigation {
                 'view_id'        => FieldRegistry::VIEW_ADDITIONAL_INFO,
                 'has_nav_button' => true,
                 'button_id'      => 'additional-information-button',
+                'restricted'     => true,
             ],
             '/application/documents/' => [
                 'form_id'        => 0,
@@ -108,6 +117,7 @@ class Navigation {
                 'view_id'        => 0,
                 'has_nav_button' => true,
                 'button_id'      => 'documents-button',
+                'restricted'     => false,  // Always accessible
             ],
         ];
     }
@@ -124,6 +134,40 @@ class Navigation {
      */
     public static function get_all_configs(): array {
         return apply_filters('nme_navigation_configs', self::$page_configs);
+    }
+
+    /**
+     * Check if current user is locked out
+     * 
+     * @return bool True if user is locked out
+     */
+    public static function is_user_locked(): bool {
+        if (!class_exists('\\NME\\Core\\AccessControl\\AccessControl')) {
+            return false;
+        }
+
+        return AccessControl::is_locked_out();
+    }
+
+    /**
+     * Get lockout information for JavaScript
+     * 
+     * @return array Lockout data
+     */
+    public static function get_lockout_data(): array {
+        if (!class_exists('\\NME\\Core\\AccessControl\\AccessControl')) {
+            return [
+                'is_locked' => false,
+                'unlock_date' => null,
+                'unlock_date_formatted' => null,
+            ];
+        }
+
+        return [
+            'is_locked' => AccessControl::is_locked_out(),
+            'unlock_date' => AccessControl::get_unlock_date(),
+            'unlock_date_formatted' => AccessControl::get_formatted_unlock_date(),
+        ];
     }
 
     /**
@@ -155,16 +199,22 @@ class Navigation {
             true
         );
 
-        // Localize script data
+        // Localize script data including lockout status
+        $lockout_data = self::get_lockout_data();
+
         wp_localize_script(
             'nme-navigation',
             'nmeNavigation',
             [
-                'ajaxurl'         => admin_url('admin-ajax.php'),
-                'nonce'           => wp_create_nonce('nme_navigation_nonce'),
-                'userid'          => get_current_user_id(),
-                'anumber'         => UserContext::get_anumber(),
-                'parent_entry_id' => UserContext::get_parent_entry_id(),
+                'ajaxurl'               => admin_url('admin-ajax.php'),
+                'nonce'                 => wp_create_nonce('nme_navigation_nonce'),
+                'userid'                => get_current_user_id(),
+                'anumber'               => UserContext::get_anumber(),
+                'parent_entry_id'       => UserContext::get_parent_entry_id(),
+                'is_locked'             => $lockout_data['is_locked'],
+                'unlock_date'           => $lockout_data['unlock_date'],
+                'unlock_date_formatted' => $lockout_data['unlock_date_formatted'],
+                'purgatory_url'         => home_url('/purgatory/'),
             ]
         );
     }
@@ -173,48 +223,75 @@ class Navigation {
      * Render navigation buttons shortcode
      */
     public static function render_navigation_buttons(): string {
+        $is_locked = self::is_user_locked();
+        $lockout_data = self::get_lockout_data();
+
         ob_start();
         ?>
-        <div class="nme-nav-container" id="application-navigation">
+        <div class="nme-nav-container" id="application-navigation" data-locked="<?php echo $is_locked ? 'true' : 'false'; ?>">
+            <?php if ($is_locked): ?>
+            <div class="nme-nav-lockout-notice">
+                <p><strong>Limited Access:</strong> Your application access is currently restricted. Full access will be restored on <?php echo esc_html($lockout_data['unlock_date_formatted']); ?>.</p>
+                <p><a href="/purgatory/">View your eligibility status</a></p>
+            </div>
+            <?php endif; ?>
+
             <div class="nme-nav-grid dark-theme">
                 <!-- Information About You -->
-                <a href="#" id="iay-button" class="nme-nav-button" 
+                <a href="#" id="iay-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
                    data-view-url="/application/information-about-you-view/" 
                    data-form-url="/application/information-about-you/" 
                    data-form-id="70" 
                    data-field-id="10" 
                    data-view-page-id="753" 
-                   data-form-page-id="703">
+                   data-form-page-id="703"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Information About You</span>
                 </a>
 
                 <!-- Time Outside the US -->
-                <a href="/application/time-outside-the-us/" id="time-outside-button" class="nme-nav-button" data-page-id="705">
+                <a href="/application/time-outside-the-us/" id="time-outside-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
+                   data-page-id="705"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Time Outside the US</span>
                 </a>
                 
                 <!-- Residences -->
-                <a href="/application/residences/" id="residences-button" class="nme-nav-button" data-page-id="706">
+                <a href="/application/residences/" id="residences-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
+                   data-page-id="706"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Residences</span>
                 </a>
 
                 <!-- Marital History -->
-                <a href="/application/marital-history/" id="marital-history-button" class="nme-nav-button" data-page-id="707">
+                <a href="/application/marital-history/" id="marital-history-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
+                   data-page-id="707"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Marital History</span>
                 </a>
 
                 <!-- Children -->
-                <a href="/application/children/" id="children-button" class="nme-nav-button" data-page-id="708">
+                <a href="/application/children/" id="children-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
+                   data-page-id="708"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Children</span>
                 </a>
 
                 <!-- Employment & School -->
-                <a href="/application/employment-school/" id="employment-school-button" class="nme-nav-button" data-page-id="709">
+                <a href="/application/employment-school/" id="employment-school-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
+                   data-page-id="709"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Employment & School</span>
                 </a>
@@ -222,13 +299,18 @@ class Navigation {
 
             <div class="nme-nav-grid dark-theme centered-row">
                 <!-- Additional Information -->
-                <a href="/application/additional-information/" id="additional-information-button" class="nme-nav-button" data-page-id="710">
+                <a href="/application/additional-information/" id="additional-information-button" class="nme-nav-button <?php echo $is_locked ? 'disabled locked' : ''; ?>" 
+                   data-page-id="710"
+                   data-restricted="true"
+                   <?php echo $is_locked ? 'aria-disabled="true"' : ''; ?>>
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Additional Information</span>
                 </a>
 
-                <!-- Documents -->
-                <a href="/application/documents/" id="documents-button" class="nme-nav-button" data-page-id="712">
+                <!-- Documents - Always accessible -->
+                <a href="/application/documents/" id="documents-button" class="nme-nav-button" 
+                   data-page-id="712"
+                   data-restricted="false">
                     <span class="nme-nav-button-icon"></span>
                     <span class="nme-nav-button-title">Documents</span>
                 </a>
