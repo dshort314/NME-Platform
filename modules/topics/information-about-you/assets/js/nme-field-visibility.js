@@ -27,6 +27,19 @@
     // field_70_17 only shows when input_16 = "Naturalization"
     const naturalizationDateField = 'field_70_17';
 
+    // Page 2 field configurations for completion checking
+    // Maps field wrapper IDs to their input selectors
+    const pageTwoFields = {
+        'field_70_11': 'input[name="input_11"]',           // Marital Status (radio)
+        'field_70_12': 'input[name="input_12"]',           // Filing based on marriage (radio)
+        'field_70_14': '#input_70_14_3, #input_70_14_6',   // Spouse Name (first and last required)
+        'field_70_15': '#input_70_15',                     // Spouse DOB
+        'field_70_16': 'input[name="input_16"]',           // How spouse became citizen (radio)
+        'field_70_17': '#input_70_17',                     // Date spouse became citizen
+        'field_70_18': '#input_70_18',                     // Date of Marriage
+        'field_70_19': 'input[name="input_19"]'            // Spouse same physical address (radio)
+    };
+
     /**
      * Hide a field by ID
      * @param {string} fieldId - The field ID to hide
@@ -106,6 +119,9 @@
                 input12No.dispatchEvent(new Event('change', { bubbles: true }));
             }
         }
+
+        // Re-check Page 2 completion after field visibility changes
+        window.NMEApp.FieldVisibility.checkPageTwoCompletion();
     };
 
     /**
@@ -132,6 +148,9 @@
             // Also hide the naturalization date field
             window.NMEApp.FieldVisibility.hideField(naturalizationDateField);
         }
+
+        // Re-check Page 2 completion after field visibility changes
+        window.NMEApp.FieldVisibility.checkPageTwoCompletion();
     };
 
     /**
@@ -147,6 +166,119 @@
             // Hide for "Birth" or no selection
             window.NMEApp.FieldVisibility.hideField(naturalizationDateField);
         }
+
+        // Re-check Page 2 completion after field visibility changes
+        window.NMEApp.FieldVisibility.checkPageTwoCompletion();
+    };
+
+    /**
+     * Check if a field wrapper is currently visible
+     * @param {string} fieldId - The field wrapper ID (e.g., 'field_70_12')
+     * @returns {boolean} - True if the field is visible
+     */
+    window.NMEApp.FieldVisibility.isFieldVisible = function(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) {
+            return false;
+        }
+        // Check if display is not 'none' and element is not hidden
+        const style = window.getComputedStyle(field);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+    };
+
+    /**
+     * Check if a field has a value
+     * @param {string} selector - jQuery selector for the input(s)
+     * @returns {boolean} - True if the field has a value
+     */
+    window.NMEApp.FieldVisibility.fieldHasValue = function(selector) {
+        const elements = $(selector);
+        
+        if (elements.length === 0) {
+            return false;
+        }
+
+        // Check if it's a radio button group
+        if (elements.first().is(':radio')) {
+            return elements.filter(':checked').length > 0;
+        }
+
+        // Check if it's a checkbox
+        if (elements.first().is(':checkbox')) {
+            return elements.filter(':checked').length > 0;
+        }
+
+        // For multiple elements (like name fields), check if all have values
+        if (elements.length > 1) {
+            let allFilled = true;
+            elements.each(function() {
+                if (!$(this).val() || $(this).val().trim() === '') {
+                    allFilled = false;
+                    return false; // Break the loop
+                }
+            });
+            return allFilled;
+        }
+
+        // For single text/date inputs
+        const value = elements.val();
+        return value && value.trim() !== '';
+    };
+
+    /**
+     * Check if all visible Page 2 fields are completed
+     * @returns {boolean} - True if all visible fields have values
+     */
+    window.NMEApp.FieldVisibility.areAllVisibleFieldsComplete = function() {
+        for (const [fieldId, inputSelector] of Object.entries(pageTwoFields)) {
+            // Skip if field is not visible
+            if (!window.NMEApp.FieldVisibility.isFieldVisible(fieldId)) {
+                continue;
+            }
+
+            // Check if visible field has a value
+            if (!window.NMEApp.FieldVisibility.fieldHasValue(inputSelector)) {
+                console.log('NME FieldVisibility: Incomplete field:', fieldId);
+                return false;
+            }
+        }
+
+        console.log('NME FieldVisibility: All visible fields complete');
+        return true;
+    };
+
+    /**
+     * Check Page 2 completion and show/hide Submit button accordingly
+     */
+    window.NMEApp.FieldVisibility.checkPageTwoCompletion = function() {
+        // Only run when Page 2 is actually visible
+        if (!window.NMEApp.FieldVisibility.isPageTwoVisible()) {
+            return;
+        }
+
+        const isComplete = window.NMEApp.FieldVisibility.areAllVisibleFieldsComplete();
+        
+        if (isComplete) {
+            $('#gform_submit_button_70').show();
+            console.log('NME FieldVisibility: Showing Submit button - all fields complete');
+        } else {
+            $('#gform_submit_button_70').hide();
+            console.log('NME FieldVisibility: Hiding Submit button - fields incomplete');
+        }
+    };
+
+    /**
+     * Setup event listeners for Page 2 field completion checking
+     */
+    window.NMEApp.FieldVisibility.setupPageTwoCompletionListeners = function() {
+        // Listen to all Page 2 input fields for changes
+        for (const [fieldId, inputSelector] of Object.entries(pageTwoFields)) {
+            $(inputSelector).on('change input', function() {
+                window.NMEApp.FieldVisibility.checkPageTwoCompletion();
+            });
+        }
+
+        console.log('NME FieldVisibility: Page 2 completion listeners configured');
     };
 
     /**
@@ -156,8 +288,17 @@
         // Hide all conditional fields initially
         conditionalFields.forEach(fieldId => window.NMEApp.FieldVisibility.hideField(fieldId));
         
+        // Hide Submit button initially on Page 2
+        $('#gform_submit_button_70').hide();
+        
         // Check current values and set visibility accordingly
         window.NMEApp.FieldVisibility.handlePrimaryRadioChange();
+
+        // Setup completion listeners
+        window.NMEApp.FieldVisibility.setupPageTwoCompletionListeners();
+
+        // Initial completion check (in case fields are pre-populated)
+        window.NMEApp.FieldVisibility.checkPageTwoCompletion();
     };
 
     /**
@@ -184,8 +325,8 @@
     };
 
     /**
-     * Check if we're on page 2 of the form
-     * @returns {boolean} - True if on page 2
+     * Check if Page 2 element exists in the DOM (for init purposes)
+     * @returns {boolean} - True if page 2 element exists
      */
     window.NMEApp.FieldVisibility.isPageTwo = function() {
         const pageContainer = document.getElementById('gform_page_70_2');
@@ -193,10 +334,24 @@
     };
 
     /**
+     * Check if Page 2 is actually visible (not just in DOM)
+     * Gravity Forms keeps all pages in DOM but hides inactive ones
+     * @returns {boolean} - True if page 2 is visible
+     */
+    window.NMEApp.FieldVisibility.isPageTwoVisible = function() {
+        const pageContainer = document.getElementById('gform_page_70_2');
+        if (!pageContainer) {
+            return false;
+        }
+        const style = window.getComputedStyle(pageContainer);
+        return style.display !== 'none';
+    };
+
+    /**
      * Initialize the field visibility module
      */
     window.NMEApp.FieldVisibility.init = function() {
-        if (window.NMEApp.FieldVisibility.isPageTwo()) {
+        if (window.NMEApp.FieldVisibility.isPageTwoVisible()) {
             window.NMEApp.FieldVisibility.initializePageTwoFields();
             window.NMEApp.FieldVisibility.setupEventListeners();
         }
@@ -219,10 +374,18 @@
      * Controls both the Next button (for users who need page 2) and the
      * Submit button (for users eligible to file now who skip page 2).
      * 
+     * NOTE: This only operates on Page 1. On Page 2, the Submit button
+     * visibility is controlled by checkPageTwoCompletion().
+     * 
      * @param {boolean} show - True to show Next button (hide Submit), 
      *                         False to show Submit button (hide Next)
      */
     window.NMEApp.FieldVisibility.toggleNextButton = function(show) {
+        // Only operate on Page 1 - don't interfere with Page 2 button logic
+        if (window.NMEApp.FieldVisibility.isPageTwoVisible()) {
+            return;
+        }
+
         if (show) {
             // Show Next, hide Submit (not eligible yet, need page 2)
             $("#gform_next_button_70_49").show();
