@@ -80,8 +80,10 @@ class BugReports {
     const STATUSES = [
         'open'        => 'Open',
         'in-progress' => 'In Progress',
+		'review'	  => 'Review',
         'resolved'    => 'Resolved',
         'closed'      => 'Closed',
+		'informational' => 'Informational',
     ];
 
     /**

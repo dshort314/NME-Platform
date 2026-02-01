@@ -8,7 +8,6 @@
  * - Sets user meta (anumber, parent_entry_id, dob)
  * - Calculates eligibility dates server-side
  * - Handles GravityView edit updates
- * - Redirects "Eligibility Assessment" users to purgatory
  * 
  * CRITICAL: Date calculations in this file are the result of 18 months of work.
  * Do not alter, "improve," or infer anything in these calculations.
@@ -19,7 +18,6 @@ namespace NME\Topics\InformationAboutYou;
 use NME\Core\FieldRegistry\FieldRegistry;
 use NME\Core\UserContext\UserContext;
 use NME\Core\MasterForm\MasterForm;
-use NME\Core\AccessControl\AccessControl;
 use NME\Core\Plugin;
 
 defined('ABSPATH') || exit;
@@ -64,7 +62,7 @@ class Handler {
         //     2
         // );
 
-        // Hook into confirmation to modify redirect URL (including purgatory redirect)
+        // Hook into confirmation to modify redirect URL
         add_filter(
             'gform_confirmation_' . self::FORM_ID,
             [__CLASS__, 'modify_confirmation_redirect'],
@@ -481,7 +479,6 @@ class Handler {
 
     /**
      * Modify confirmation redirect to include Master form entry ID
-     * Also handles redirect to purgatory for "Eligibility Assessment" status
      * 
      * @param mixed $confirmation The confirmation
      * @param array $form The form object
@@ -490,51 +487,10 @@ class Handler {
      * @return mixed The confirmation
      */
     public static function modify_confirmation_redirect($confirmation, array $form, array $entry, bool $ajax) {
-        $master_entry_id = isset($entry['50']) ? $entry['50'] : '';
-        
-        // Get eligibility status and controlling description
-        $status = isset($entry['37']) ? $entry['37'] : '';
-        $controlling_desc = isset($entry['36']) ? $entry['36'] : '';
-        $application_date = isset($entry['35']) ? $entry['35'] : '';
-
-        $debug_mode = Plugin::is_debug_enabled('information-about-you');
-
-        // Check if user is in "Eligibility Assessment" status (more than 1 year away)
-        if (class_exists('\\NME\\Core\\AccessControl\\AccessControl') && 
-            AccessControl::is_eligibility_assessment($status, $controlling_desc)) {
-            
-            if ($debug_mode) {
-                error_log('NME Platform - Information About You Handler: User is in Eligibility Assessment status. Status: ' . $status . ', Desc: ' . $controlling_desc);
-            }
-
-            // Calculate unlock date (6 months before application date)
-            $unlock_date = AccessControl::calculate_unlock_date($application_date);
-
-            if ($unlock_date) {
-                // Build the purgatory message
-                $purgatory_message = self::build_purgatory_message($entry, $application_date, $unlock_date);
-
-                // Set the lockout
-                AccessControl::set_lockout(
-                    $unlock_date,
-                    $purgatory_message,
-                    $controlling_desc
-                );
-
-                if ($debug_mode) {
-                    error_log('NME Platform - Information About You Handler: Set lockout until ' . $unlock_date . ', redirecting to purgatory');
-                }
-
-                // Return redirect to purgatory
-                return [
-                    'type'     => 'redirect',
-                    'redirect' => home_url('/purgatory/'),
-                ];
-            }
-        }
-
-        // Normal flow - modify existing redirect confirmation
+        // Only modify if it's a redirect confirmation and we have the Master form entry ID
         if (is_array($confirmation) && isset($confirmation['type']) && $confirmation['type'] == 'redirect') {
+            $master_entry_id = $entry['50'];  // Get from field 50
+
             if (!empty($master_entry_id)) {
                 $redirect_url = $confirmation['url'];
 
@@ -542,6 +498,7 @@ class Handler {
                 $separator = (strpos($redirect_url, '?') !== false) ? '&' : '?';
                 $confirmation['url'] = $redirect_url . $separator . 'parent_entry_id=' . $master_entry_id;
 
+                $debug_mode = Plugin::is_debug_enabled('information-about-you');
                 if ($debug_mode) {
                     error_log('NME Platform - Information About You Handler: Modified redirect URL to include parent_entry_id=' . $master_entry_id);
                 }
@@ -549,40 +506,6 @@ class Handler {
         }
 
         return $confirmation;
-    }
-
-    /**
-     * Build the purgatory message based on entry data
-     * 
-     * @param array $entry The form entry
-     * @param string $application_date The application/filing date
-     * @param string $unlock_date The unlock date (6 months before filing)
-     * @return string HTML message
-     */
-    private static function build_purgatory_message(array $entry, string $application_date, string $unlock_date): string {
-        // Format dates for display
-        $app_date_obj = \DateTime::createFromFormat('Y-m-d', $application_date);
-        if (!$app_date_obj) {
-            $app_date_obj = \DateTime::createFromFormat('m/d/Y', $application_date);
-        }
-        $app_date_formatted = $app_date_obj ? $app_date_obj->format('F j, Y') : $application_date;
-
-        $unlock_date_obj = \DateTime::createFromFormat('Y-m-d', $unlock_date);
-        if (!$unlock_date_obj) {
-            $unlock_date_obj = \DateTime::createFromFormat('m/d/Y', $unlock_date);
-        }
-        $unlock_date_formatted = $unlock_date_obj ? $unlock_date_obj->format('F j, Y') : $unlock_date;
-
-        // Build message
-        $message = '<p>As of today, you are not currently eligible to file for Naturalization – you can file, however, on or after <strong>' . esc_html($app_date_formatted) . '</strong>.</p>';
-        
-        $message .= '<p>Moreover, you have sought to apply more than one (1) year early and, therefore, pursuant to the terms of use you will have limited access to this site.</p>';
-        
-        $message .= '<p>Full access will be restored on <strong>' . esc_html($unlock_date_formatted) . '</strong>, which is 6 months prior to ' . esc_html($app_date_formatted) . ' which is the date on or after which you are eligible to file.</p>';
-        
-        $message .= '<p><em>Note: Filing earlier than your eligibility date will result in a denial of your case without a refund.</em></p>';
-
-        return $message;
     }
 
     /**

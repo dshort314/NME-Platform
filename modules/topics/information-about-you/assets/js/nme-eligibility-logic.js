@@ -254,7 +254,7 @@
             // Not eligible yet - show Next button (go to page 2)
             window.NMEApp.FieldVisibility.toggleNextButton(true);
             window.NMEApp.ModalAlerts.displayLPRMessage(
-                "<p>You can move on to the next page but please make sure the values highlighted above are correct before you submit this form as you <b>cannot change them later</b></p>"
+                '<p>Before you are permitted to continue with your application, you must confirm the following information for security purposes: (1) your date of birth, (2) your Alien Number, and (3) your date of Legal Permanent Residency.  These items <b>CANNOT BE CHANGED OR EDITED</b> later and customer service will not be able to change these for you.  If you fail to correct these now, you will be required to purchase another session with Naturalization Made Easy ("NME").</p><p>You may correct the entries by clicking "I understand" and making those changes before clicking "Next" in order to move onto the next page.  Once you click "Next", you hereby confirm your responses are correct with respect to your date of birth, Alien Number, and date of Legal Permanent Residency.</p>'
             );
             window.NMEApp.FieldVisibility.highlightFields(
                 ["#input_70_5", "#input_70_10", "#input_70_23"], 
