@@ -92,14 +92,9 @@
         });
 
         var message = ''
-            + '<p><strong>USCIS Requirement:</strong> You must live in marital union with your U.S. citizen spouse for the 3 years immediately preceding your filing date in order to file early.</p>'
-            + '<p>If you need to revise your answer, you may do so now. If you are residing separately from your spouse, you have two options:</p>'
-            + '<ol>'
-            + '<li><strong>Exception Consultation:</strong> If you still wish to file early based upon your marriage to your U.S. citizen spouse, you may revert to an ELIGIBILITY ASSESSMENT and provide the information to an immigration attorney to discuss applying for the exception to the residential requirement; or</li>'
-            + '<li><strong>Standard Timeline:</strong> You may elect to wait until your filing date of <strong>' + dateStr + '</strong>, which is 4 years and 9 months from the date you became a legal permanent resident. You will receive a notice from us six (6) months prior to the date on which you are eligible to file in order to resume your application.</li>'
-            + '</ol>'
-            + '<p><strong>Please confirm your answer by selecting "Continue". If not, please select "Back" and change your answer to "Yes."</strong></p>';
-
+            + '<p><strong>USCIS Requirement:</strong> You must live in marital union with your U.S. citizen spouse for the 3 years immediately preceding your filing date in order to file early as the spouse of a U.S. citizen.</p>'
+            + '<p>Note that “marital union” requires “residing together”, plainly understood.  For example, if there is a separation in which one of you leaves the marital residence for any length of time, it would be considered to be breaking the three year time period for residing together in marital union.  There are exceptions in relation to required travel and relocation for employment.  Covering these exceptions, and others, to the “marital union” rule are not covered by Naturalization Made Easy and, therefore, your application will be changed to an Eligibility Assessment for you to discuss this and any other exceptions which may apply to the “marital union” rule with an attorney.</p>'
+            + '<p><strong>Please confirm your answer by selecting "Continue".  Otherwise, if you wish to change your answer, please select “Back”.</strong></p>';
         NMEModal.confirm({
             title: 'Marital Union Requirement',
             message: message,

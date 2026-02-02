@@ -81,6 +81,7 @@ class BugReports {
         'open'        => 'Open',
         'in-progress' => 'In Progress',
 		'review'	  => 'Review',
+		'revise'	  => 'Revise',
         'resolved'    => 'Resolved',
         'closed'      => 'Closed',
 		'informational' => 'Informational',
