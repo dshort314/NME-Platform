@@ -40,7 +40,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     flex-wrap: wrap;
     gap: 10px;
 }
@@ -50,11 +50,39 @@
     gap: 10px;
 }
 
-.nme-bug-filter {
+.nme-bug-toolbar {
     display: flex;
     gap: 10px;
+}
+
+/* Filter bar */
+.nme-bug-filter-bar {
+    display: flex;
     align-items: center;
     flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 15px;
+    background: #f6f7f7;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.nme-filter-label {
+    font-weight: 600;
+    color: #1d2327;
+    margin-right: 5px;
+}
+
+.nme-filter-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.nme-filter-checkbox input[type="checkbox"] {
+    margin: 0;
 }
 
 /* Accordion styles */
@@ -446,6 +474,16 @@
     color: #856404;
 }
 
+.nme-status-review {
+    background: #e2d9f3;
+    color: #4a235a;
+}
+
+.nme-status-revise {
+    background: #fce4ec;
+    color: #880e4f;
+}
+
 .nme-status-resolved {
     background: #d4edda;
     color: #155724;
@@ -454,6 +492,11 @@
 .nme-status-closed {
     background: #e0e0e0;
     color: #555;
+}
+
+.nme-status-informational {
+    background: #d1ecf1;
+    color: #0c5460;
 }
 
 /* Form panel - full width */

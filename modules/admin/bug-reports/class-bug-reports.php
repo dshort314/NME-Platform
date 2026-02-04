@@ -482,7 +482,33 @@ class BugReports {
      * Render the bug list view
      */
     private static function render_list(): void {
-        $status_filter = sanitize_text_field($_GET['status'] ?? '');
+        $current_user_id = get_current_user_id();
+        
+        // Check if user explicitly submitted filters
+        $filter_applied = isset($_GET['filter_applied']);
+        
+        if ($filter_applied) {
+            // User clicked Apply or Clear - save their preference
+            $filter_state = [
+                'status'      => isset($_GET['status']) ? array_map('sanitize_text_field', (array) $_GET['status']) : [],
+                'show_closed' => isset($_GET['show_closed']) && $_GET['show_closed'] === '1',
+            ];
+            update_user_meta($current_user_id, '_nme_bug_filter_state', $filter_state);
+            $status_filter = $filter_state['status'];
+            $show_closed = $filter_state['show_closed'];
+        } else {
+            // No explicit filter - restore saved preference
+            $filter_state = get_user_meta($current_user_id, '_nme_bug_filter_state', true);
+            if (is_array($filter_state)) {
+                $status_filter = $filter_state['status'] ?? [];
+                $show_closed = $filter_state['show_closed'] ?? false;
+            } else {
+                $status_filter = [];
+                $show_closed = false;
+            }
+        }
+        
+        $has_filter = !empty($status_filter);
         
         $args = [
             'post_type'      => self::POST_TYPE,
@@ -492,11 +518,23 @@ class BugReports {
             'order'          => 'ASC',
         ];
 
-        if ($status_filter) {
+        // Build meta query
+        if ($has_filter) {
+            // Specific statuses selected
             $args['meta_query'] = [
                 [
-                    'key'   => '_nme_bug_status',
-                    'value' => $status_filter,
+                    'key'     => '_nme_bug_status',
+                    'value'   => $status_filter,
+                    'compare' => 'IN',
+                ],
+            ];
+        } elseif (!$show_closed) {
+            // Default: hide closed
+            $args['meta_query'] = [
+                [
+                    'key'     => '_nme_bug_status',
+                    'value'   => 'closed',
+                    'compare' => '!=',
                 ],
             ];
         }
@@ -539,21 +577,36 @@ class BugReports {
                    class="button">⚙ Settings</a>
             </div>
             
-            <form method="get" class="nme-bug-filter">
-                <input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE_SLUG); ?>">
-                <select name="status">
-                    <option value="">All Statuses</option>
-                    <?php foreach (self::STATUSES as $key => $label): ?>
-                        <option value="<?php echo esc_attr($key); ?>" <?php selected($status_filter, $key); ?>>
-                            <?php echo esc_html($label); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" class="button">Filter</button>
+            <div class="nme-bug-toolbar">
                 <button type="button" class="button" id="nme-expand-all">Expand All</button>
                 <button type="button" class="button" id="nme-collapse-all">Collapse All</button>
-            </form>
+            </div>
         </div>
+
+        <form method="get" class="nme-bug-filter-bar">
+            <input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE_SLUG); ?>">
+            <input type="hidden" name="filter_applied" value="1">
+            <span class="nme-filter-label">Filter:</span>
+            <?php foreach (self::STATUSES as $key => $label): 
+                $is_closed = ($key === 'closed');
+            ?>
+                <label class="nme-filter-checkbox <?php echo in_array($key, $status_filter) ? 'checked' : ''; ?>">
+                    <input type="checkbox" name="status[]" value="<?php echo esc_attr($key); ?>"
+                           <?php checked(in_array($key, $status_filter)); ?>>
+                    <span class="nme-status nme-status-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></span>
+                </label>
+            <?php endforeach; ?>
+            <?php if (!$has_filter): ?>
+                <label class="nme-filter-checkbox">
+                    <input type="checkbox" name="show_closed" value="1" <?php checked($show_closed); ?>>
+                    <span style="font-size: 13px;">Include Closed</span>
+                </label>
+            <?php endif; ?>
+            <button type="submit" class="button">Apply</button>
+            <?php if ($has_filter || $show_closed): ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE_SLUG . '&filter_applied=1')); ?>" class="button-link" style="margin-left: 5px;">Clear</a>
+            <?php endif; ?>
+        </form>
 
         <?php if (empty($reports)): ?>
             <div class="nme-bug-panel">
