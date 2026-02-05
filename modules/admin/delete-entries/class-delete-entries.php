@@ -185,7 +185,7 @@ class DeleteEntries {
 
         // Send backup if requested
         if (!empty($_POST['send_backup'])) {
-            $backup_email = sanitize_email($_POST['backup_email'] ?? '');
+            $backup_email = sanitize_text_field($_POST['backup_email'] ?? '');
             if ($backup_email) {
                 self::send_backup_email($anumber, $backup_email);
             }

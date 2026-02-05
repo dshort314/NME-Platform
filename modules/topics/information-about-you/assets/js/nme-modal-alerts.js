@@ -56,16 +56,17 @@
      */
     window.NMEApp.ModalAlerts.showSpouseEligibilityAlert = function() {
         var message = ''
-            + '<p><strong>To qualify to file within 3 years you must:</strong></p>'
+            + '<p><strong>In order to qualify to file within 3 years based upon marriage to a U.S. Citizen, be aware that:</strong></p>'
             + '<ol>'
-            + '<li>Be currently married (not separated, divorced, or widowed), and</li>'
-            + '<li>Currently living with your U.S. citizen spouse (not living apart)</li>'
+            + '<li>Your U.S. citizen spouse must have been a U.S. citizen for the last three years (whether at birth or by naturalization); and</li>'
+            + '<li>For the last three years, you must have lived together in marital union with your U.S. citizen spouse and, during that time, not separated; and</li>'
+            + '<li>You are currently living together in marital union with your spouse, i.e., not living apart, and must continue to live together until the time of your Naturalization interview.</li>'
             + '</ol>'
-            + '<p>If these conditions do not apply, you cannot elect to file as a spouse of a U.S. citizen and should wait until 4 years and 9 months has passed since becoming a legal permanent resident.</p>'
-            + '<p><strong>Please confirm your answer by selecting "Continue". If not, please select "Back" and change your answer to "No."</strong></p>';
+            + '<p>If these conditions do not apply, then you cannot elect to file as a spouse of a U.S. Citizen and must wait until 4 years and 9 months have passed since becoming a Legal Permanent Resident or until the date on which you satisfy the Spousal Eligibility Requirements above, whichever is earlier.</p>'
+            + '<p><strong>Please confirm your answer by selecting "Continue."  If these conditions do not apply, select "Back" and change your answer to "No."</strong></p>';
 
         NMEModal.confirm({
-            title: 'Spouse Eligibility Requirements',
+            title: 'Spousal Eligibility Requirements',
             message: message,
             confirmText: 'Continue',
             cancelText: 'Back',
@@ -93,8 +94,8 @@
 
         var message = ''
             + '<p><strong>USCIS Requirement:</strong> You must live in marital union with your U.S. citizen spouse for the 3 years immediately preceding your filing date in order to file early as the spouse of a U.S. citizen.</p>'
-            + '<p>Note that “marital union” requires “residing together”, plainly understood.  For example, if there is a separation in which one of you leaves the marital residence for any length of time, it would be considered to be breaking the three year time period for residing together in marital union.  There are exceptions in relation to required travel and relocation for employment.  Covering these exceptions, and others, to the “marital union” rule are not covered by Naturalization Made Easy and, therefore, your application will be changed to an Eligibility Assessment for you to discuss this and any other exceptions which may apply to the “marital union” rule with an attorney.</p>'
-            + '<p><strong>Please confirm your answer by selecting "Continue".  Otherwise, if you wish to change your answer, please select “Back”.</strong></p>';
+            + '<p>Note that "marital union" requires "residing together", plainly understood.  For example, if there is a separation in which one of you leaves the marital residence for any length of time, it would be considered to be breaking the three year time period for residing together in marital union.  There are exceptions in relation to required travel and relocation for employment.  Covering these exceptions, and others, to the "marital union" rule are not covered by Naturalization Made Easy and, therefore, your application will be changed to an Eligibility Assessment for you to discuss this and any other exceptions which may apply to the "marital union" rule with an attorney.</p>'
+            + '<p><strong>Please confirm your answer by selecting "Continue".  Otherwise, if you wish to change your answer, please select "Back".</strong></p>';
         NMEModal.confirm({
             title: 'Marital Union Requirement',
             message: message,

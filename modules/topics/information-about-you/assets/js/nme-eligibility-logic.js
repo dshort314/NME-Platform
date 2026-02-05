@@ -65,7 +65,7 @@
                 controllingDate = dates.LPRC;
                 controllingDesc = "LPRC - 1C";
                 status = "Eligibility Assessment";
-                applicationMessage = `As of today, you are not currently eligible to file for Naturalization – you can file, however, on or after  ${DateCalc.formatDate(dates.LPRC)}.   Moreover, you have sought to apply more than one (1) year early and, therefore, pursuant to the terms of use you will have limited access to this site.  Full access will be restored on ${DateCalc.formatDate(dates.LPRC6)}, which is 6 months prior to  ${DateCalc.formatDate(dates.LPRC)} which is the date on or after which you are eligible to file.   In the meantime, you will have access to "Documents' if you wish to gather the documents which will be used in support of your application.`;
+                applicationMessage = `Based upon your date of Legal Permanent Residency, you are not currently eligible to file for Naturalization – you are eligible to file, however, on or after ${DateCalc.formatDate(dates.LPRC)}, which is 4 years and 9 months from your date of Legal Permanent Residency.</p><p>Moreover, you have sought to apply more than one (1) year early and, therefore, pursuant to the terms of use you will have limited access to this site.  Full access will be restored on ${DateCalc.formatDate(dates.LPRC6)}, which is 6 months prior to ${DateCalc.formatDate(dates.LPRC)} which is the date on or after which you are eligible to file.   In the meantime, you will have access to "Documents' if you wish to gather the documents which will be used in support of your application.`;
             }
         }
 
