@@ -24,5 +24,12 @@ return [
         // Load and initialize assets (client-side JavaScript/CSS)
         require_once __DIR__ . '/class-assets.php';
         \NME\Topics\InformationAboutYou\Assets::init();
+
+        // Load eligibility calculator (utility class, no init needed)
+        require_once __DIR__ . '/class-eligibility-calculator.php';
+
+        // Load and initialize view handler (recalculates on page 753 load)
+        require_once __DIR__ . '/class-view-handler.php';
+        \NME\Topics\InformationAboutYou\ViewHandler::init();
     },
 ];
